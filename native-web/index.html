@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spectre · Port observatory</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/hud.css">
+<main>
+  <header><a class="wordmark" href="/">SPECTRE<span> / LAB</span></a><span class="badge"><i></i> LOCAL DEVELOPMENT PREVIEW</span></header>
+  <section class="intro"><div><div class="eyebrow">FROM THE ORIGINAL MAC DISC → RUST + WEBASSEMBLY</div><h1>An old world.<br><em>A new engine.</em></h1><p>The journey from Spectre VR to a native browser game.<br>Explore the recovered models and follow each working milestone.</p></div><div class="stage"><span class="eyebrow">CURRENT BUILD</span><strong>Drive. Dodge.<br>Shoot back.</strong><span>Playable encounter · provisional enemy AI</span><a href="#drive">Drive the build ↓</a></div></section>
+  <section class="metrics" aria-label="Verified project facts"><div><strong>358</strong><span>Model entries recovered</span></div><div><strong>112</strong><span>World layouts recovered</span></div><div><strong>470</strong><span>Asset renders verified</span></div><div><strong>0</strong><span>OS emulation dependencies</span></div></section>
+  <section class="section-heading" id="drive"><div><div class="eyebrow">NEW / DRIVING PROTOTYPE</div><h2>Take Tank 1 for a drive</h2></div><span class="muted">Recovered handling · candidate direction table</span></section>
+  <div class="toolbar" role="group" aria-label="Play mode"><button id="single-player-toggle" aria-pressed="true">Single player</button><button id="multiplayer-toggle" aria-pressed="false">Multiplayer · 2 players</button></div>
+  <section class="drive-panel" id="multiplayer-panel" hidden>
+    <div class="toolbar"><button id="mp-create" disabled>Create room</button><label for="mp-room">Room code</label><input id="mp-room" maxlength="12" placeholder="Friend’s room code" autocomplete="off"><button id="mp-join" disabled>Join room</button><button id="mp-leave" disabled>Leave room</button><label for="mp-camera">View</label><select id="mp-camera"><option value="0">Cockpit (research)</option><option value="1" selected>Chase</option><option value="2">Overhead</option></select><button id="mp-fullscreen">Fullscreen</button><button id="mp-mute" aria-pressed="false">Mute</button></div>
+    <div id="mp-invite" class="toolbar" hidden><label for="mp-link">Invite link</label><input id="mp-link" readonly><button id="mp-copy">Copy invite link</button></div>
+    <p id="mp-status" role="status">Create a room, or join your friend’s room.</p>
+    <div class="drive-hud"><strong id="mp-score">Two players · First to 5 · Cannons only</strong><span id="mp-latency"></span></div>
+    <canvas id="mp-view" width="800" height="600" tabindex="0" aria-label="Multiplayer arena. Click to drive. WASD or arrows move, Space fires, Shift brakes, Tab changes view, F opens fullscreen."></canvas>
+    <button id="mp-rematch" hidden>Request rematch</button><span id="mp-rematch-note"></span>
+    <div class="drive-controls"><button data-mp-control="ArrowLeft">← Left</button><button data-mp-control="ArrowUp">Forward ↑</button><button data-mp-control="Space">Fire ✦</button><button data-mp-control="ShiftLeft">Brake</button><button data-mp-control="ArrowDown">Reverse ↓</button><button data-mp-control="ArrowRight">Right →</button></div>
+    <p>WASD / arrows drive · Space fires · Shift brakes · Tab changes view · F fullscreen. Click the arena to take control. Three hits destroy a tank; respawn after two seconds. Unlimited cannon ammo. Leaving or switching to single player frees your slot. The match waits when one player disconnects and starts fresh when another joins.</p>
+    <span id="mp-sound-status" class="muted">Sound starts when you create or join a room.</span>
+  </section>
+  <section class="drive-panel" id="game-panel">
+    <div class="toolbar"><label for="arena">Arena</label><select id="arena" disabled aria-label="Driving arena"></select><label for="camera">View</label><select id="camera"><option value="0">First person</option><option value="1">Diagnostic chase</option><option value="2">Overhead map</option></select><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><label for="mode">Mode</label><select id="mode"><option value="2">Flag mission</option><option value="3">Campaign level</option><option value="1">Encounter</option><option value="0">Stationary research</option></select><span id="campaign-controls" hidden><label for="campaign-level">Level</label><input id="campaign-level" type="number" min="1" max="32767" step="1" value="1"><label for="campaign-difficulty">Difficulty</label><select id="campaign-difficulty"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></span><button id="play" disabled>Drive tank</button><button id="restart" disabled>Restart round</button><button id="fullscreen" aria-pressed="false">Fullscreen</button><label><input id="infinite-health" type="checkbox" autocomplete="off"> Infinite health</label><button id="type31-event" disabled>Replay enemy unlock event</button><span id="drive-state" role="status">Loading…</span></div>
+    <canvas id="drive-view" width="800" height="600" tabindex="0" aria-label="Driving prototype. W or up moves forward, S or down reverses, A and D steer, Space fires, Shift brakes, Q selects an optional weapon, E fires the selected supported optional weapon, Escape pauses."></canvas>
+    <section id="mission-results" class="mission-results" hidden aria-live="polite" aria-labelledby="results-title">
+      <h3 id="results-title">Arena cleared</h3><p id="results-time"></p>
+      <div class="rating-grid">
+        <div><h4>Quickness</h4><strong id="rating-0"></strong><meter id="rating-bar-0" min="0" max="16" aria-label="Quickness"></meter><span id="rating-bonus-0"></span></div>
+        <div><h4>Accuracy</h4><strong id="rating-1"></strong><meter id="rating-bar-1" min="0" max="16" aria-label="Accuracy"></meter><span id="rating-bonus-1"></span></div>
+        <div><h4>Avoidance</h4><strong id="rating-2"></strong><meter id="rating-bar-2" min="0" max="16" aria-label="Avoidance"></meter><span id="rating-bonus-2"></span></div>
+      </div><p id="results-total"></p><button id="next-level" hidden>Next level</button><p class="muted">Campaign rounds can continue with Next level. R or Restart round restores the current level’s entry state.</p>
+    </section>
+    <p id="scene-info" class="muted"></p>
+    <div class="toolbar sound-toolbar"><label for="sound-volume">Sound</label><input id="sound-volume" type="range" min="0" max="100" value="35" aria-label="Sound volume"><button id="sound-mute" aria-pressed="false">Mute</button><span id="sound-status" role="status">Sound starts when you click Drive tank</span></div>
+    <div class="drive-hud"><span id="telemetry">60 Hz fixed-step simulation</span><span>WASD / arrows · Space fire · Shift brake · Q select weapon · E optional weapon · R reset · F fullscreen · Esc pause</span></div>
+    <p id="optional-weapon" aria-live="polite">No optional weapons unlocked</p>
+    <div class="drive-controls" aria-label="Touch driving controls"><button data-control="ArrowLeft" aria-label="Steer left">← Left</button><button data-control="ArrowUp">Forward ↑</button><button data-control="Space">Fire ✦</button><button data-control="ShiftLeft">Brake</button><button data-control="KeyQ">Select weapon</button><button id="fire-optional" data-control="KeyE" disabled>Fire optional weapon</button><button data-control="ArrowDown">Reverse ↓</button><button data-control="ArrowRight" aria-label="Steer right">Right →</button></div>
+    <p class="muted">In Flag mission, drive over every yellow flag to clear the arena. These use the recovered level-one flag conversion on the selected map; Campaign level mode loads the selected level from the original wave sequence. Selecting a level starts a fresh run. After clearing it, Next level carries score and lives forward and refills hull and ammunition. Flag pickups use recovered contact geometry on supported arenas; other arenas use provisional footprint overlap. Original model-load ordering remains unverified. Encounter mode instead ends when you destroy the red enemies. Type-7 tanks pursue you and shoot using firing rates and ranges from the original game data; scenery provides cover. Clear their escorts to expose protected type-31 targets. Tank 1 starts with six hull points and 40 rounds. Campaign advancement can upgrade shields, ammunition capacity, and speed. Flag missions start with three lives; surviving death restores hull and ammo while keeping collected flags and enemies as they are. Flags and enemy kills use recovered awards and the original default-difficulty score table. Player respawns use recovered search and clearance rules, with provisional random generation and collision fallback where required. Enemies consume their original life budgets and can borrow a life from another enemy of the same type before retiring. Surviving enemies respawn; Kills and Retired are tracked separately. Permanently retiring the last enemy awards the recovered enemy-clear bonus. Clearing the arena shows the recovered Quickness, Accuracy, and Avoidance ratings and awards their bonuses. Original transition movies and timing remain unfinished. R restarts the round. Tab or keypad * cycles views while the canvas is focused; +/− zooms the exterior and overhead views. Encounter AI, hull damage, and objectives are provisional rules. Stationary research mode preserves the previous behavior. The original disc supplies models, static placements, enemy types, base health, and sound samples. Player handling, projectile motion, and the type-31 vulnerability transition use recovered routines. Ice preserves momentum, static Cybermud slows you down, and Flow Fields push the tank where recovered contact geometry is available. Blue pickups grant flight energy: slowing down raises the tank, and accelerating lowers it. The tank descends when energy runs out. Down transit devices take you below ground and clear flight energy; up transit devices return you to the surface. Flight energy and altitude appear below the arena. Surface status appears there too. Initial spawn positions, campaign progression, camera, colors, and parts of collision remain provisional.</p>
+  </section>
+  <section class="section-heading" id="workbench"><div><div class="eyebrow">01 / INTERACTIVE BUILD</div><h2>Inside the original geometry</h2></div><span class="muted">Live Rust renderer · drag to explore</span></section>
+  <div class="layout">
+
+    <aside>
+      <label for="campaign">Original campaign</label>
+      <select id="campaign" disabled><option value="central">Central Systems Matrix</option><option value="eastern">Eastern Edge Matrix</option><option value="south">South Central Matrix</option></select>
+      <input id="search" type="search" placeholder="Find a tank, model, or map…" aria-label="Filter resources" disabled>
+      <select id="assets" size="18" aria-label="Original resources" disabled></select>
+      <button id="open" disabled>Open a matrix file…</button><input id="file" type="file" accept=".bin,.rsrc">
+    </aside>
+    <section>
+      <div id="surface"><canvas id="view" width="800" height="600" tabindex="0" aria-label="Original Spectre asset rendered by Rust"></canvas></div>
+      <div class="toolbar"><button id="spin" disabled>Auto-rotate</button><button id="fill" disabled>Wireframe</button><button id="reset" disabled>Reset view</button><span class="muted">Drag to rotate · scroll to zoom · arrows rotate · [ ] select</span></div>
+      <h2 id="name">Loading the native renderer…</h2><div id="details" class="muted"></div><div id="status" role="status"></div>
+    </section>
+  </div>
+  <div id="gallery" class="gallery" aria-label="Featured original models"></div>
+  <div class="note"><strong>First port milestone: original assets.</strong> These models and map layouts come from your CD. Rust decodes and draws them directly. The driving preview uses recovered movement routines with a candidate direction table and provisional collision. Original gameplay behavior, audio, and networking still need implementation. Colors and shading here are diagnostic.</div>
+  <section class="section-heading"><div><div class="eyebrow">02 / THE ROAD TO PLAYABLE</div><h2>One verified milestone at a time</h2></div><span id="sync" class="muted" role="status">Loading progress log…</span></section>
+  <div id="milestones" class="milestones"></div>
+  <section class="activity"><div><div class="eyebrow">03 / BUILD NOTES</div><h2>What changed</h2><p class="muted">This log refreshes every 10 seconds.<br>Updates appear when project files change.<br>Reload the page for a new renderer build.</p></div><div id="activity"></div></section>
+  <footer>The same Rust library powers the native desktop viewer. No System 7, Mac ROM, CPU interpreter, or external runtime service is used by this page. The local server supplies the original disc assets to connected browsers.</footer>
+</main>
+<script type="module" src="/app.js"></script>
+</html>

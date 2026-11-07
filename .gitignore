@@ -1,0 +1,16 @@
+.DS_Store
+*.iso
+*.img
+*.dsk
+.cache/
+.local/
+target/
+native-web/spectre_core.wasm
+__pycache__/
+
+node_modules/
+
+.env
+.env.*
+!.env.example
+*.pem

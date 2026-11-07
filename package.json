@@ -1,0 +1,40 @@
+{
+  "name": "spectre-browser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "start:native": "node native-server.mjs",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "test:assets": "node scripts/verify-assets.mjs",
+    "test": "node --test",
+    "test:game": "node scripts/verify-game.mjs",
+    "test:scenes": "node scripts/verify-scenes.mjs",
+    "test:model-slots": "node scripts/verify-model-slots.mjs",
+    "build:audio": "cargo run --quiet --locked -p spectre-tools -- export-sounds .local/extracted/spectre.bin .local/audio",
+    "test:audio": "node scripts/verify-audio.mjs",
+    "test:encounter": "node scripts/verify-encounter.mjs",
+    "test:flags": "node scripts/verify-flags.mjs",
+    "test:lives": "node scripts/verify-lives.mjs",
+    "test:campaign": "node scripts/verify-campaign.mjs",
+    "test:death": "node scripts/verify-death-transition.mjs",
+    "test:palette": "node scripts/verify-palette.mjs",
+    "test:surface-enemies": "node scripts/verify-surface-enemies.mjs",
+    "test:pickups": "node scripts/verify-pickups.mjs",
+    "test:flight": "node scripts/verify-flight.mjs",
+    "test:transits": "node scripts/verify-transits.mjs",
+    "test:predictive-enemies": "node scripts/verify-predictive-enemies.mjs",
+    "test:weapon-controls": "node scripts/verify-weapon-controls.mjs",
+    "test:scattershot": "node scripts/verify-scattershot.mjs",
+    "test:seekers": "node scripts/verify-seeker-game.mjs",
+    "test:missiles": "node scripts/verify-missile-game.mjs",
+    "test:grenades": "node scripts/verify-grenade-game.mjs",
+    "test:multiplayer": "node scripts/verify-deathmatch.mjs && node scripts/verify-multiplayer.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  }
+}

@@ -1,0 +1,14 @@
+[package]
+name = "spectre-tools"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[features]
+desktop = ["dep:minifb"]
+
+[dependencies]
+spectre-core = { path = "../spectre-core" }
+serde_json.workspace = true
+minifb = { version = "0.29", optional = true }

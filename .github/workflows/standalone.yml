@@ -1,8 +1,12 @@
 name: Standalone game
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   no-disc:
     runs-on: ubuntu-latest
+    outputs:
+      recording: ${{ steps.recording.outputs.artifact-url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,5 +27,51 @@ jobs:
       - run: npm run build
       - run: git diff --exit-code -- assets/open/generated
       - run: npm test
-      - run: npm run test:open
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm run test:open:record
+      - name: Upload playthrough evidence
+        id: recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playthrough-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/playthrough/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Link recording in build summary
+        if: always() && steps.recording.outputs.artifact-url != ''
+        env:
+          RECORDING_URL: ${{ steps.recording.outputs.artifact-url }}
+        run: |
+          echo "### Gameplay evidence" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download MP4 recordings and screenshots]($RECORDING_URL) (30-day retention; GitHub sign-in required)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Real WASM frames; silent, without browser HUD. Beacon navigation uses labeled infinite health. Partial clips can survive failed checks; consult the run result." >> "$GITHUB_STEP_SUMMARY"
       - run: npm run test:open-network
+  pr-recording:
+    needs: no-disc
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.no-disc.outputs.recording != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RECORDING_URL: ${{ needs.no-disc.outputs.recording }}
+          CHECK_RESULT: ${{ needs.no-disc.result }}
+        with:
+          script: |
+            const marker = '<!-- openspectre-playthrough -->';
+            const body = `${marker}
+            **Gameplay recording** · commit ${context.payload.pull_request.head.sha}
+            Build result: **${process.env.CHECK_RESULT}**
+
+            [Download MP4s and screenshots](${process.env.RECORDING_URL}) · [Build log](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+            Cannon combat, enemy damage/death, and a complete beacon mission from the actual WASM test. The beacon navigation test uses infinite health, labeled on screen. Silent framebuffer capture; browser HUD/audio and network play are not recorded. Failed runs may contain partial clips.
+
+            Downloads require GitHub sign-in and expire after 30 days.`;
+            const params = {...context.repo, issue_number: context.issue.number};
+            const comments = await github.paginate(github.rest.issues.listComments, params);
+            const previous = comments.find(c => c.user.login === 'github-actions[bot]' && c.body.includes(marker));
+            if (previous) await github.rest.issues.updateComment({...context.repo, comment_id: previous.id, body});
+            else await github.rest.issues.createComment({...params, body});

@@ -6,6 +6,9 @@ import {spawn, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {WebSocket} from 'ws';
 
+import {recorder} from './playthrough-recorder.mjs';
+const recording=recorder(process.argv.includes('--record'));
+
 const root=new URL('../',import.meta.url);
 const manifest=JSON.parse(readFileSync(new URL('assets/open/generated/manifest.json',root)));
 for(const [file,hash] of Object.entries(manifest.files)){
@@ -78,26 +81,39 @@ const {w,output,entries}=await make('central');
 const arena=entries.findIndex(e=>e.kind==='wrld'&&e.id===10000);
 assert.equal(w.game_start_mission(arena),1);w.game_camera(2);w.game_frame(0,0,0,0,0);
 const initial=output();
-for(let t=0;t<1200;t++){w.game_frame(1/60,0,0,0,1);if(output().destroyed>0)break;}
-assert.ok(output().destroyed>0,'cannons can kill replacement enemies');
-w.game_reset();w.game_frame(0,0,0,0,0);
-for(let t=0;t<3000&&!output().death_transition;t++)w.game_frame(1/60,0,0,0,0);
-assert.ok(output().death_transition,'replacement enemies damage and kill the player');
-assert.equal(w.game_start_campaign_level(1,0),1);
-w.game_infinite_health(1);w.game_frame(0,0,0,0,0);
-// Drive around cover and along the perimeter; no simulation state is injected.
-for(const [x,z] of [[160,512],[160,160],[96,160],[96,864],[160,864],[864,864]]){
-  for(let t=0;t<1800;t++){
-    const tank=output().tank;
-    if(Math.hypot(x-tank.x,z-tank.z)<10||output().encounter.status==='won')break;
-    const aim=Math.atan2(x-tank.x,z-tank.z);
-    const delta=Math.atan2(Math.sin(aim-tank.heading),Math.cos(aim-tank.heading));
-    w.game_frame(1/60,Math.abs(delta)<.18?1:0,Math.abs(delta)>.025?Math.sign(delta):0,0,1);
-  }
+for(const [camera,name] of [[0,'cockpit'],[1,'chase'],[2,'overhead']]){
+  w.game_camera(camera);recording.screenshot(w,w.game_frame(0,0,0,0,0),name);
 }
-assert.equal(output().flags.collected,output().flags.total,'driving collects every replacement beacon');
-assert.equal(output().encounter.status,'won');assert.ok(output().completion);
-assert.ok(output().mission.score>initial.mission.score);
+try{
+  await recording.start('01-combat','Cannon combat | normal health');
+  for(let t=0;t<1200;t++){await recording.frame(w,w.game_frame(1/60,0,0,0,1));if(output().destroyed>0)break;}
+  assert.ok(output().destroyed>0,'cannons can kill replacement enemies');
+  await recording.stop();
+  await recording.start('02-death','Enemy damage and death | normal health');
+  w.game_reset();w.game_frame(0,0,0,0,0);
+  for(let t=0;t<3000&&!output().death_transition;t++)await recording.frame(w,w.game_frame(1/60,0,0,0,0));
+  assert.ok(output().death_transition,'replacement enemies damage and kill the player');
+  // Include the visible death spin after the transition starts.
+  for(let t=0;t<260;t++)await recording.frame(w,w.game_frame(1/60,0,0,0,0));
+  await recording.stop();
+  await recording.start('03-beacon-mission','Beacon mission | INFINITE HEALTH navigation test');
+  assert.equal(w.game_start_campaign_level(1,0),1);
+  w.game_camera(1);
+  w.game_infinite_health(1);w.game_frame(0,0,0,0,0);
+  // Drive around cover and along the perimeter; no simulation state is injected.
+  for(const [x,z] of [[160,512],[160,160],[96,160],[96,864],[160,864],[864,864]]){
+    for(let t=0;t<1800;t++){
+      const tank=output().tank;
+      if(Math.hypot(x-tank.x,z-tank.z)<10||output().encounter.status==='won')break;
+      const aim=Math.atan2(x-tank.x,z-tank.z);
+      const delta=Math.atan2(Math.sin(aim-tank.heading),Math.cos(aim-tank.heading));
+      await recording.frame(w,w.game_frame(1/60,Math.abs(delta)<.18?1:0,Math.abs(delta)>.025?Math.sign(delta):0,0,1));
+    }
+  }
+  assert.equal(output().flags.collected,output().flags.total,'driving collects every replacement beacon');
+  assert.equal(output().encounter.status,'won');assert.ok(output().completion);
+  assert.ok(output().mission.score>initial.mission.score);
+}finally{await recording.stop();}
 assert.equal(w.game_next_campaign_level(),1,'campaign can advance after victory');
 assert.equal(output().campaign.level,2);
 assert.equal(w.dm_start(),1);w.dm_input(0,0,0,0,1);

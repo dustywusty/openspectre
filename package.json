@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
+    "start": "node native-server.mjs",
     "start:native": "node native-server.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
     "test:assets": "node scripts/verify-assets.mjs",
@@ -29,7 +29,13 @@
     "test:seekers": "node scripts/verify-seeker-game.mjs",
     "test:missiles": "node scripts/verify-missile-game.mjs",
     "test:grenades": "node scripts/verify-grenade-game.mjs",
-    "test:multiplayer": "node scripts/verify-deathmatch.mjs && node scripts/verify-multiplayer.mjs"
+    "test:multiplayer": "node scripts/verify-deathmatch.mjs && node scripts/verify-multiplayer.mjs",
+    "start:classic": "node scripts/start-classic.mjs",
+    "start:emulator": "node server.mjs",
+    "build:assets": "python3 scripts/build-open-assets.py",
+    "build": "npm run build:assets && npm run build:wasm",
+    "test:open": "node scripts/verify-open-pack.mjs",
+    "test:open-network": "node scripts/verify-multiplayer.mjs --open"
   },
   "engines": {
     "node": ">=22"

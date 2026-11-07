@@ -1244,8 +1244,287 @@ impl Frame {
     }
 }
 
+impl Frame {
+    /// Full-frame presentation for the bundled pack, separate from classic projection recovery.
+    pub fn replacement(&mut self, game: &crate::game::Game, tank: &Shape, chase: bool, zoom: f32) {
+        let rgb = |index: usize, fallback: [u8; 3]| {
+            game.palette
+                .as_ref()
+                .and_then(|p| p.get(index))
+                .map_or(fallback, |c| c.map(|v| (v >> 8) as u8))
+        };
+        let sky = rgb(0, [14, 25, 43]);
+        self.clear(sky);
+        let altitude = game.vertical.vertical as f32 / 524288.;
+        let mut heading = game.tank.heading;
+        let (s, c) = heading.sin_cos();
+        let mut camera = if chase {
+            [game.tank.x - s * 95., 58. + altitude, game.tank.z - c * 95.]
+        } else {
+            [game.tank.x, 18. + altitude, game.tank.z]
+        };
+        let mut pitch: f32 = if chase { 0.30 } else { 0. };
+        if let Some(death) = game.death_camera() {
+            heading = (90. - death.pose[2] as f32 / 65536.).to_radians();
+            camera = [
+                death.pose[0] as f32 / 65536.,
+                18. + death.height as f32 / 8.,
+                death.pose[1] as f32 / 65536.,
+            ];
+            pitch = 0.35;
+        }
+        let (s, c) = heading.sin_cos();
+        let (sp, cp) = pitch.sin_cos();
+        let focal = 460. * if chase { zoom } else { 1. };
+        let horizon = 300. - focal * pitch.tan();
+        for y in 0..HEIGHT {
+            let ground = y as f32 > horizon;
+            let fade = if ground {
+                0.50 + 0.28 * (y as f32 - horizon) / 600.
+            } else {
+                0.55 + 0.45 * y as f32 / 600.
+            };
+            let base = if ground { rgb(11, [42, 58, 74]) } else { sky };
+            let color = base.map(|v| (f32::from(v) * fade) as u8);
+            for x in 0..WIDTH {
+                self.pixel(x as i32, y as i32, color);
+            }
+        }
+        let transform = |p: [f32; 3]| {
+            let [x, y, z] = std::array::from_fn(|i| p[i] - camera[i]);
+            let forward = x * s + z * c;
+            [x * c - z * s, y * cp + forward * sp, forward * cp - y * sp]
+        };
+        let project = |p: [f32; 3]| {
+            [
+                400. + p[0] * focal / p[2],
+                300. - p[1] * focal / p[2],
+                1. / p[2],
+            ]
+        };
+        let edge = |frame: &mut Frame, a, b, color| {
+            let mut a = transform(a);
+            let mut b = transform(b);
+            if a[2] < 1. && b[2] < 1. {
+                return;
+            }
+            if a[2] < 1. || b[2] < 1. {
+                let t = (1. - a[2]) / (b[2] - a[2]);
+                let cut = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, 1.];
+                if a[2] < 1. {
+                    a = cut;
+                } else {
+                    b = cut;
+                }
+            }
+            frame.depth_line(project(a), project(b), color);
+        };
+        for n in (0..=1024).step_by(64) {
+            let color = if n == 0 || n == 1024 {
+                rgb(4, [70, 190, 180])
+            } else {
+                [35, 57, 67]
+            };
+            edge(self, [n as f32, 0., 0.], [n as f32, 0., 1024.], color);
+            edge(self, [0., 0., n as f32], [1024., 0., n as f32], color);
+        }
+        let kind_color = |kind: i16| {
+            let index = game
+                .color_bindings
+                .as_ref()
+                .and_then(|b| b.kinds.get(kind as usize))
+                .map_or(4, |pair| pair[0] as usize);
+            rgb(index, [95, 208, 180])
+        };
+        let draw = |frame: &mut Frame, shape: &Shape, pose: [f32; 4], base: [u8; 3]| {
+            let [x, height, z, heading] = pose;
+            let (s, c) = heading.sin_cos();
+            let points: Vec<_> = shape
+                .vertices
+                .iter()
+                .map(|v| transform([x + v.x * c + v.z * s, height + v.y, z - v.x * s + v.z * c]))
+                .collect();
+            for face in &shape.faces {
+                let vertices: Vec<_> = face
+                    .vertices
+                    .iter()
+                    .filter_map(|i| points.get(*i).copied())
+                    .collect();
+                if vertices.len() < 3 {
+                    if vertices.len() == 2 && vertices.iter().all(|p| p[2] >= 1.) {
+                        frame.depth_line(project(vertices[0]), project(vertices[1]), base);
+                    }
+                    continue;
+                }
+                let a: [f32; 3] = std::array::from_fn(|i| vertices[1][i] - vertices[0][i]);
+                let b: [f32; 3] = std::array::from_fn(|i| vertices[2][i] - vertices[0][i]);
+                let normal = [
+                    a[1] * b[2] - a[2] * b[1],
+                    a[2] * b[0] - a[0] * b[2],
+                    a[0] * b[1] - a[1] * b[0],
+                ];
+                let length = normal.iter().map(|v| v * v).sum::<f32>().sqrt().max(0.001);
+                let light = (normal[0] * 0.3 + normal[1] * 0.85 + normal[2] * 0.4).abs() / length;
+                let shade = (0.42 + light * 0.40 + if face.color == 1 { 0.15 } else { 0. }).min(1.);
+                let color = base.map(|v| (f32::from(v) * shade) as u8);
+                let clipped = near_clip(&vertices);
+                frame.depth_polygon(&clipped.into_iter().map(project).collect::<Vec<_>>(), color);
+            }
+        };
+        for item in game
+            .items
+            .iter()
+            .chain(game.pickups.iter().map(|p| &p.item))
+        {
+            if let Some(shape) = &item.shape {
+                let color = game.pickup_color(item).map_or_else(
+                    || kind_color(item.kind),
+                    |i| rgb(i as usize, kind_color(item.kind)),
+                );
+                draw(
+                    self,
+                    shape,
+                    [item.x, 0., item.z, item.scene_heading(false)],
+                    color,
+                );
+            }
+        }
+        for target in game.targets.iter().filter(|t| t.health > 0) {
+            if let Some(shape) = &target.item.shape {
+                draw(
+                    self,
+                    shape,
+                    [
+                        target.item.x,
+                        0.,
+                        target.item.z,
+                        target.item.scene_heading(true),
+                    ],
+                    kind_color(target.item.kind),
+                );
+            }
+        }
+        if chase || game.death_transition.is_some() {
+            draw(
+                self,
+                tank,
+                [game.tank.x, altitude, game.tank.z, game.tank.heading],
+                kind_color(6),
+            );
+        }
+        for (item, height) in game.projectile_models(true) {
+            if let Some(shape) = &item.shape {
+                draw(
+                    self,
+                    shape,
+                    [item.x, height as f32 / 8., item.z, item.scene_heading(true)],
+                    rgb(7, [255, 180, 100]),
+                );
+            }
+        }
+        for shot in game.shots.iter().chain(&game.enemy_shots) {
+            if shot.missile.is_some() && game.missile_model.is_some() {
+                continue;
+            }
+            edge(
+                self,
+                [shot.x, shot.height, shot.z],
+                [
+                    shot.x - shot.heading.sin() * 9.,
+                    shot.height,
+                    shot.z - shot.heading.cos() * 9.,
+                ],
+                rgb(10, [255, 245, 180]),
+            );
+        }
+        for impact in &game.impacts {
+            let r = (37 - impact.life.min(36)) as f32 * 0.35;
+            edge(
+                self,
+                [impact.x - r, 8., impact.z],
+                [impact.x + r, 8., impact.z],
+                [255, 180, 90],
+            );
+            edge(
+                self,
+                [impact.x, 8. - r, impact.z],
+                [impact.x, 8. + r, impact.z],
+                [255, 180, 90],
+            );
+        }
+        if !chase && game.death_transition.is_none() {
+            self.line([380., 300.], [391., 300.], [220, 240, 210]);
+            self.line([409., 300.], [420., 300.], [220, 240, 210]);
+            self.line([400., 288.], [400., 294.], [220, 240, 210]);
+        }
+        // Reuse the pack's own radar symbols with a full-frame layout.
+        let screen = [0, 0, 480, 640];
+        let display = crate::recovered::display_rectangle(screen, 1);
+        let layout = crate::recovered::viewport_layout(screen, display.size.map(|v| v as i16));
+        self.radar_overlay(game, &layout, &display, WIDTH as f32 / 640.);
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn replacement_scene_occludes_far_geometry_and_keeps_full_frame() {
+        use crate::formats::{Face, Vertex};
+        let shape = Shape {
+            packed_vertices: vec![],
+            vertices: [
+                [-20., 0., 0.],
+                [20., 0., 0.],
+                [20., 40., 0.],
+                [-20., 40., 0.],
+            ]
+            .map(|[x, y, z]| Vertex { x, y, z })
+            .to_vec(),
+            faces: vec![Face {
+                vertices: vec![0, 1, 2, 3],
+                color: 0,
+                normal: None,
+                plane: None,
+            }],
+            radar_vertices: vec![],
+            radar_lines: vec![],
+            plane_sides: 0,
+        };
+        let mut game = crate::game::Game::new(World { obstacles: vec![] }).unwrap();
+        let item = |z| crate::scene::Item {
+            kind: 0,
+            shape_id: 10200,
+            x: 512.,
+            z,
+            heading: std::f32::consts::FRAC_PI_2,
+            source: "replacement asset".into(),
+            min: [-20., 0., 0.],
+            max: [20., 40., 0.],
+            shape: Some(shape.clone()),
+        };
+        game.items = vec![item(570.), item(650.)];
+        let mut first = Frame::default();
+        first.replacement(&game, &shape, false, 1.);
+        game.items.reverse();
+        let mut reversed = Frame::default();
+        reversed.replacement(&game, &shape, false, 1.);
+        assert_eq!(
+            first.rgba, reversed.rgba,
+            "far surfaces cannot show through near surfaces"
+        );
+        assert!(first.inverse_depth[280 * WIDTH + 400] > 0.);
+        assert_ne!(
+            rgb(&first, 20, 20),
+            [0, 0, 0],
+            "new view fills the top of the framebuffer"
+        );
+        assert_ne!(
+            rgb(&first, 20, 580),
+            [0, 0, 0],
+            "new view fills the bottom of the framebuffer"
+        );
+    }
+
     #[test]
     fn patterned_faces_keep_phase_across_polygon_boundaries() {
         let mut whole = Frame::default();

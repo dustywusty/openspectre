@@ -39,6 +39,7 @@ pub struct Viewer {
     pub campaign: Option<CampaignLevel>,
     pub camera_zoom: i32,
     tank_index: usize,
+    replacement_assets: bool,
     catalog: crate::scene::Catalog,
     shared_colors: Vec<crate::resource::Resource>,
 }
@@ -101,6 +102,7 @@ impl Viewer {
         // Catalog insertion order gives campaign resources precedence.
         merged.extend(archive.resources.iter().cloned());
         let catalog = crate::scene::Catalog::load(&Archive { resources: merged })?;
+        self.replacement_assets = archive.get("opsp", 1).is_some();
         self.catalog = catalog;
         self.game = None;
         self.campaign = None;
@@ -275,6 +277,10 @@ impl Viewer {
             (&self.game, self.content.get(self.tank_index))
         {
             let zoom = 2.0_f32.powf(self.camera_zoom.clamp(-2, 3) as f32 * 0.5);
+            if self.replacement_assets && self.camera != 2 {
+                self.frame.replacement(game, shape, self.camera == 1, zoom);
+                return;
+            }
             match self.camera {
                 1 => self.frame.driving(game, shape, zoom),
                 2 => self.frame.overhead(game, shape, zoom),

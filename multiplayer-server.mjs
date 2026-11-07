@@ -1,3 +1,4 @@
+import { assetPack } from './asset-pack.mjs';
 import { WebSocketServer, WebSocket } from 'ws';
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -5,7 +6,7 @@ import { performance } from 'node:perf_hooks';
 
 // The server owns the simulation. Clients can submit controls, never positions,
 // hits, health, scores, player IDs, or arbitrary simulation step counts.
-export function attachDeathmatch(server) {
+export function attachDeathmatch(server, { pack = assetPack() } = {}) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024, perMessageDeflate: false });
   const rooms = new Map();
   let assets;
@@ -16,8 +17,8 @@ export function attachDeathmatch(server) {
   };
   const load = () => assets ??= Promise.all([
     readFile(new URL('native-web/spectre_core.wasm', import.meta.url)).then(b=>WebAssembly.compile(b)),
-    readFile(new URL('.local/extracted/spectre.bin', import.meta.url)),
-    readFile(new URL('.local/extracted/central.bin', import.meta.url)),
+    readFile(pack.data('spectre')),
+    readFile(pack.data('central')),
   ]).catch(error=>{ assets=undefined; throw error; });
   async function createRoom() {
     // Reserve before the async load so simultaneous creates cannot bypass the cap.
@@ -99,7 +100,7 @@ export function attachDeathmatch(server) {
         if(free<0)throw new Error('This room already has two players.');
         room=candidate;slot=free;room.clients[slot]=ws;clearTimeout(joinDeadline);
         if(room.clients.every(Boolean))reset(room);
-        send(ws,{type:'welcome',room:room.id,slot});broadcast(room);
+        send(ws,{type:'welcome',room:room.id,slot,pack:pack.id});broadcast(room);
       } catch(error){send(ws,{type:'error',message:error.message});}
       finally{busy=false;}
     });

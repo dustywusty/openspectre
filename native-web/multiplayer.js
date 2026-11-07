@@ -55,6 +55,10 @@ export class Multiplayer {
   load(){
     return this.loading??= (async()=>{
       const get=async path=>{const r=await fetch(path);if(!r.ok)throw new Error(`${path}: ${r.status}`);return r.arrayBuffer();};
+      const config=await fetch('/pack.json');
+      if(!config.ok)throw new Error('Asset pack information unavailable');
+      this.packId=(await config.json()).id;
+      $('#mp-camera').options[0].textContent=this.packId==='open'?'First person':'Cockpit (research)';
       const [bytes,shared,arena]=await Promise.all([get('/spectre_core.wasm'),get('/data/spectre.bin'),get('/data/central.bin')]);
       this.w=(await WebAssembly.instantiate(bytes,{})).instance.exports;
       for(const [bytes,fn] of [[shared,'load_shared_colors'],[arena,'load_archive']]){this.feed(new Uint8Array(bytes));if(!this.w[fn]())throw new Error('Original assets could not load');}
@@ -91,6 +95,7 @@ export class Multiplayer {
       if(this.ws!==ws)return;
       let msg;try{msg=JSON.parse(e.data);}catch{return;}
       if(msg.type==='welcome'){
+        if(msg.pack!==this.packId){fail('The server changed asset packs. Refresh before joining.');return;}
         clearTimeout(this.connectionTimer);
         this.slot=msg.slot;this.room=msg.room;
         const url=new URL(location.href);url.searchParams.set('room',msg.room);url.hash='drive';

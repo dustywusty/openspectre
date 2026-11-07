@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub struct Catalog {
+    pub replacement_assets: bool,
     pub palettes: BTreeMap<i16, Vec<u8>>,
     pub color_bindings: Option<crate::recovered::ColorBindings>,
     pub radar_glyphs: Option<Vec<Vec<[i8; 2]>>>,
@@ -49,7 +50,10 @@ pub struct Item {
 }
 impl Catalog {
     pub fn load(archive: &Archive) -> Result<Self> {
-        let mut catalog = Self::default();
+        let mut catalog = Self {
+            replacement_assets: archive.get("opsp", 1).is_some(),
+            ..Self::default()
+        };
         for resource in &archive.resources {
             if resource.kind == "clut" {
                 catalog.palettes.insert(resource.id, resource.data.clone());
@@ -317,7 +321,9 @@ impl Catalog {
                     .or_else(|| {
                         frame.and_then(|f| self.shapes.get(f).cloned().or_else(|| procedural(*f)))
                     });
-                let source = if self.shapes.contains_key(&id) {
+                let source = if self.replacement_assets && shape.is_some() {
+                    "replacement asset"
+                } else if self.shapes.contains_key(&id) {
                     "original resource"
                 } else if frame.is_some() && shape.is_some() {
                     "original animation, frozen first frame"

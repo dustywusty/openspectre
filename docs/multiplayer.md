@@ -2,12 +2,12 @@
 
 The browser has Single player and Multiplayer buttons above the game. Switching to Multiplayer pauses the single-player game. Switching back preserves it and leaves the multiplayer room.
 
-Multiplayer uses Central Systems Matrix arena 10000 from the local disc extraction. The server runs the Rust simulation through WASM at 60 ticks per second. It sends snapshots about 20 times per second. Each browser renders its own view with the same Rust library.
+Bundled multiplayer uses Crosscurrent, a new arena in Signal Frontier. Classic mode uses Central Systems Matrix arena 10000 from your disc extraction. The server runs the Rust simulation through WASM at 60 ticks per second. It sends snapshots about 20 times per second. Each browser renders its own view with the same Rust library.
 
 ## Play
 
-1. Run `npm install` and `npm run build:wasm` after extracting the disc assets as described in the README.
-2. Run `npm run start:native`.
+1. Run `npm ci` and `npm run build`.
+2. Run `npm start` for the bundled pack, or `npm run start:classic` after extracting your disc.
 3. Open `http://localhost:5174/#drive` and select Multiplayer.
 4. Select Create room. Give the invitation link to the other player.
 5. The other player opens the link and joins automatically. Click the arena to drive and enable sound.
@@ -34,7 +34,7 @@ WASD or arrow keys drive. Space fires. Shift brakes. Tab changes the view. F ent
 - A disconnect stops the simulation. A replacement player starts a fresh match.
 - Empty rooms are removed. The server accepts up to four rooms.
 
-These are new demo rules. They do not reproduce the original networking protocol or original multiplayer rules. Player hit detection uses the tank footprint. Scenery collision uses the existing recovery adapter. The demo starts in chase view; the cockpit renderer remains a research view with projection issues.
+These are new demo rules. They do not reproduce the original networking protocol or original multiplayer rules. Player hit detection uses the tank footprint. Scenery collision uses the existing recovery adapter. The demo starts in chase view. The bundled pack uses a solid renderer. The classic cockpit renderer remains a research view with projection issues.
 
 The server accepts controls only. Clients cannot set health, positions, damage, or scores. Stale controls expire after 500 milliseconds. Local movement and cannon shots use the same Rust simulation as the server, with sequenced inputs and server acknowledgements.
 The client restores server checkpoints and repeats inputs that the server has not acknowledged. Small visual corrections fade smoothly.
@@ -46,7 +46,10 @@ Opponent movement uses interpolation between snapshots. Damage and scores still 
 cargo test --workspace
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 npm run build:wasm
-npm run test:multiplayer
+npm run test:open
+npm run test:open-network
 ```
 
 Rust tests cover movement, hits, cover, deaths, respawns, spawn protection expiry, and victory. The WASM check plays a full match on the original arena and checks both rendered viewpoints. The network check covers room joining, shared state, input validation and expiry, room capacity, rematches, disconnection, replacement players, and cleanup.
+
+Classic recovery checks remain available through `npm run test:multiplayer` after disc extraction.

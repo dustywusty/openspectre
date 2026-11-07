@@ -1,7 +1,12 @@
 {
-  "revision": 274,
+  "revision": 275,
   "verified": "2026-11-07",
   "milestones": [
+    {
+      "state": "complete",
+      "title": "Play without the original disc",
+      "detail": "Signal Frontier supplies 12 new arenas, 53 model entries per zone, new game data, radar symbols, and 48 synthesized sounds. Classic disc mode remains available."
+    },
     {
       "state": "complete",
       "title": "Recover the original disc",
@@ -519,6 +524,11 @@
     }
   ],
   "activity": [
+    {
+      "date": "2026-11-07",
+      "title": "Standalone replacement pack",
+      "detail": "Added reproducible asset generation, solid full-frame views, no-disc startup, and a separate classic mode. Verified combat, campaign advancement, and multiplayer without a .local directory."
+    },
     {
       "date": "2026-11-07",
       "title": "Recover and integrate bouncing-round impact retirement",

@@ -1,46 +1,57 @@
 # OpenSpectre
 
-The native port is in progress. The first working milestone reads original models and world layouts directly from the CD resources.
-One Rust library runs in a browser through WebAssembly and in a native macOS window.
-It contains no Mac ROM, System 7 runtime, or CPU interpreter.
+OpenSpectre is a native Rust tank game for browsers and desktop windows, inspired by Spectre VR.
+The shared simulation runs through WebAssembly in the browser. It needs no Mac ROM, System 7 runtime, or CPU interpreter.
 
-**Current build:** a playable Rust/WASM prototype with original arenas, enemy combat, campaign progression, sound, and two-player online deathmatch.
-Movement uses recovered routines with a candidate direction table. Collision and parts of the original behavior remain provisional.
+The bundled **Signal Frontier** pack works without a disc. It includes:
 
-The repository contains source code, extraction tools, tests, and research notes. It does not include the original game assets or disc image.
-Supply your own Spectre VR/CD disc image to build and play.
-Asset inspection uses diagnostic colors. First-person authored solid faces now use recovered color bindings, integer normals, shade ramps, and dithering. The full original renderer remains unfinished.
+- Three zones and 12 new arenas.
+- 53 model entries per zone, including tanks, scenery, supplies, projectiles, and animation frames.
+- New palettes, radar symbols, enemy settings, weapon tables, and campaign sequences.
+- 48 synthesized sound effects.
+- First-person, chase, and overhead views, single-player combat, and two-player online deathmatch.
 
-## Native port setup
+Classic mode loads original assets from your own Spectre VR/CD image. Original assets are not included in this repository.
+Movement uses recovered routines. Collision and parts of the original behavior remain provisional.
+The bundled pack has its own solid renderer. Classic mode retains the original projection research path.
 
-Use Rust 1.88 or later, Node.js 22 or later, Python 3, and hfsutils.
-On macOS, install hfsutils:
+## Play without a disc
+
+Install Rust 1.88 or later, Node.js 22 or later, and Python 3. Then run:
+
+```sh
+rustup target add wasm32-unknown-unknown
+npm ci
+npm run build
+npm start
+```
+
+Open <http://localhost:5174/#drive>. Click **Drive tank**.
+The generated replacement assets are included. `npm run build` regenerates them from source and compiles the WASM module.
+Use `npm run build:wasm` to rebuild only the engine.
+
+See [asset pack authoring](docs/asset-packs.md) for model parameters, arena coordinates, sound generation, and reproducibility checks.
+
+## Play with classic disc assets
+
+On macOS, install hfsutils. Then extract your own disc and export its sound:
 
 ```sh
 brew install hfsutils
-rustup target add wasm32-unknown-unknown
-```
-
-Extract your disk:
-
-```sh
 python3 scripts/extract-disc.py /absolute/path/to/SpectreVRCD_1_1.iso
-```
-
-The script reads a working copy. It checks that the original ISO hash remains unchanged.
-Extracted MacBinary files retain both file forks. All extracted assets and reports remain in the ignored `.local/` directory.
-
-## Browser viewer
-
-```sh
-npm ci
-npm run build:wasm
 npm run build:audio
-npm run start:native
+npm run start:classic
 ```
 
-Open <http://localhost:5174>. Select a model or world layout from the list.
-Drag to rotate a model. Scroll to zoom. The browser downloads only local files.
+Build the WASM module first, as described above. Stop an existing server before changing modes, then refresh the browser.
+`npm run start:classic` checks that the required assets exist. It does not silently substitute replacement assets.
+`npm start` selects the bundled pack by default. The `SPECTRE_ASSETS=classic` environment setting also selects classic mode.
+
+The extraction script reads a working copy and checks that the source ISO hash stays unchanged.
+Extracted resources, sound, and research output remain in the ignored `.local/` directory.
+The server serves only the selected pack. A server uses the same pack for every multiplayer participant.
+
+For the original Macintosh executable, use the separate [emulator reference](#original-game-reference).
 
 ## Playable encounter
 
@@ -111,6 +122,12 @@ Select **Multiplayer**, create a room, and share the invitation link. The second
 Local movement and shots use prediction. The server controls damage and scores.
 See [multiplayer setup and rules](docs/multiplayer.md) for public links and connection details.
 
+For the bundled pack in a native window:
+
+```sh
+cargo run --locked -p spectre-tools --features desktop -- drive assets/open/generated/central.bin --colors assets/open/generated/spectre.bin
+```
+
 ## Native desktop viewer
 
 ```sh
@@ -141,11 +158,11 @@ Non-ASCII name bytes remain explicit hexadecimal escapes until Mac Roman text co
 cargo test --workspace
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 npm run build:wasm
-npm run test:assets
-npm run test:game
+npm run test:open
+npm run test:open-network
 ```
 
-The asset test requires your extracted CD. It renders all 358 model resources and 112 map resources across the three campaigns.
+Classic recovery checks such as `npm run test:assets` require your extracted CD. It renders all 358 model resources and 112 map resources across the three campaigns.
 Shared resources count once per campaign. It also compares the native and WASM Tank 1 reference frames pixel by pixel.
 The WASM module has no runtime imports.
 
@@ -167,7 +184,7 @@ The server reads your CD image without changing it. It downloads emulator and sy
 Use Node.js 22 or later. No npm dependencies are required.
 
 ```sh
-npm start
+npm run start:emulator
 ```
 
 Open <http://localhost:5173>. Click **Start Macintosh**.
@@ -176,7 +193,7 @@ The default CD path is `~/SpectreVRCD_1_1.iso`.
 For another CD path or port, run:
 
 ```sh
-SPECTRE_ISO="/absolute/path/to/game.iso" PORT=5173 npm start
+SPECTRE_ISO="/absolute/path/to/game.iso" PORT=5173 npm run start:emulator
 ```
 
 ### Open the original game

@@ -1,0 +1,27 @@
+name: Standalone game
+on: [push, pull_request]
+jobs:
+  no-disc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: cargo fmt --all --check
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: npm run build
+      - run: git diff --exit-code -- assets/open/generated
+      - run: npm test
+      - run: npm run test:open
+      - run: npm run test:open-network

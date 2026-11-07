@@ -1,0 +1,93 @@
+{
+  "name": "OpenSpectre \u00b7 Signal Frontier",
+  "version": 1,
+  "origin": "Authored primitives, arena coordinates, balance values, radar drawings, and synthesized PCM. No disc inputs.",
+  "campaigns": [
+    {
+      "id": "central",
+      "name": "Neon Foundry",
+      "arenas": [
+        "Crosscurrent",
+        "Switchyard",
+        "Prism Court",
+        "Citadel"
+      ]
+    },
+    {
+      "id": "eastern",
+      "name": "Glass Expanse",
+      "arenas": [
+        "Mirror Lake",
+        "Long Division",
+        "Frozen Compass",
+        "Refraction"
+      ]
+    },
+    {
+      "id": "south",
+      "name": "Ember Circuit",
+      "arenas": [
+        "Hot Junction",
+        "Furnace Row",
+        "Overpass",
+        "Last Light"
+      ]
+    }
+  ],
+  "models_per_campaign": 53,
+  "sound_count": 48,
+  "files": {
+    "audio/10001.wav": "58a6a326773c07602829cdcd02876e0afc5eec2cfbc4a956c4c1dcbe2fdcf105",
+    "audio/10002.wav": "dd78f19d318096252cfbc8350883de4a96e76c93c9586366ceb9d609586c50ae",
+    "audio/10003.wav": "6f72c21167f4b2c0f1c17ee9bc7405f7401c8c376c7698ad918c5b4d84da7316",
+    "audio/10004.wav": "74e661ec7c9998bba8aeee9bec82a768be6f7cd9b013fffa69e1ac1501187670",
+    "audio/10005.wav": "ff8785314c79966e5ddb9419352ce0cc062285467d4ba9c4de5facc69fa302c1",
+    "audio/10006.wav": "b9aff6fbb8802362814c88706de6d08acdc9e9fce6a82605b556dec96a7d43a0",
+    "audio/10007.wav": "467e811fd4ce1a4792e7e099e968cc73fee5e4cb6f17de86af1dc956506a23dd",
+    "audio/10008.wav": "ea395fbe682862df77ab33250085ee79776a4ae94770087239b2780c958b8e45",
+    "audio/10009.wav": "e0bf9e86f73b8fb02fa192b1bb609d4eec70d0e25d43c4be0c5be295e35fcc9f",
+    "audio/10010.wav": "407e23ed4996e6350c67f938eec73e9fdb075867904538ccc1c0c1b0adaf73c7",
+    "audio/10011.wav": "a73b0f2978f953bdc1ff1b7e29e846307df390ba07cc94f57d996c138b7cf840",
+    "audio/10012.wav": "0399c3324c40f62439cd9e3b0117e896c93bf31947996b14eb7025343c044983",
+    "audio/10013.wav": "3b87a0c96645f2e84846573ae0273a7e7697d989d01187fdc2b0118c5049e352",
+    "audio/10014.wav": "243a2fe6b37e93a01376ae6203ea88d1ba89900cd5bff661cd8174299cac5eab",
+    "audio/10015.wav": "05f4d8f4f33a2371d602a77b8e5fee044897adca2864d9be25429433937713ba",
+    "audio/10016.wav": "3e9eca030fbaf5f5da5592eca8b4dd70660275e02c294422b581af4570dcf88c",
+    "audio/10017.wav": "18c0199d6df687e8da6682ad1a541b6a7d5241f21bd7df2bac28a36bd6578fbe",
+    "audio/10018.wav": "80224c32b785312e253a806d022793f3c3e3b3cee7b4509bd370762838aa3bd4",
+    "audio/10019.wav": "38d5ee39749c3ccfde308e64169e9875a26f47716406742abe67d07c19798fe7",
+    "audio/10020.wav": "2b393de274e9ebdc1d069971c97de113a782b8d92a4a13839ecc001b11a6635b",
+    "audio/10021.wav": "687f604206b2648a280735fc0e0f709bdee6c40bb0e7cebc75c09f5abb13e735",
+    "audio/10022.wav": "07e11d8a3fd18acc0051464678c7b923b90281c5b5ae8802a21a5870f495799d",
+    "audio/10023.wav": "59198f6a74ab1029c48e1af8eb313332ff207690853e63c5e4a8626ee5491165",
+    "audio/10024.wav": "6d32f1f0efb21aeb31d24f184459c9abdd1ba202fa0fc07b0bff1119124e060d",
+    "audio/10025.wav": "7cd6d585e7ec2f06104cedac688aaa7de664093b3d93bd6842e567a4393ac500",
+    "audio/10026.wav": "923ba7b72d7c35239afe92966b520ad2775fd00581387ae359c6433ea818e106",
+    "audio/10027.wav": "c94cf586b6ab5afdc8a76f3baf54683417a29a56c2fa83512d7848a6bc897b09",
+    "audio/10028.wav": "ec61ed2a12ce585f31d938af97b0f6c61e856c64309569574f4f75f42658642f",
+    "audio/10029.wav": "dfe64c896636025e17fec365e29dc4844ebcd4135f3822ead6722555d491a2ba",
+    "audio/10030.wav": "9f536c5598724f777328723d2c3fef3a5e9995eb8ee18b95f00933a09c2b1579",
+    "audio/10031.wav": "6aaca4ba6f82148904c764e80911d5c2e9a252cd5f89ce79d08dd37f7c70b5f2",
+    "audio/10032.wav": "c529454735413adf4db8ad6b13c5c621e011a2738bfdc431331d6174fd1ad12e",
+    "audio/10033.wav": "d77b5ddbdff6f4c7b61da51ed4e3b2c48146b5ff90cb3dcea1bb8253e97b75a6",
+    "audio/10034.wav": "44a6ae141878630487272c61871417c99143a500f6a861c14e8fa2857fa09d81",
+    "audio/10035.wav": "ad84ad2217fcd390473accb755ba5c2dee1a1e8a7e859f1b181bc398b67647f8",
+    "audio/10036.wav": "9e01be179056ede590ad3ae1e25482aee33bc4290fa5e5c90f2cda226e4c0953",
+    "audio/10037.wav": "a00905abff35ea5e1bbf1971912685159880d43b1bb5bd2e3e979ebf51586eab",
+    "audio/10038.wav": "275474f738623168e554576caf74b9472989267348bb38d87e2113a8f6fe8285",
+    "audio/10039.wav": "768292d631f36d56e8b84e26dc95434cf73a59d356bcc45094d2be9e26668b9d",
+    "audio/10040.wav": "29920a18d67370bb1af2562e5657814ef9e1e0a25a8884bd0d7265a3af30eb56",
+    "audio/10041.wav": "7f5df1ecfb50a0b1f055c472c5a9f842af1b6b7557f9849dc18f5597f1dce842",
+    "audio/10042.wav": "af8c44eb6a9c06308a5e01ddbcfd69d5f8ab3148f06aaba047143dcbdea6d130",
+    "audio/10043.wav": "a0ff3643ce82451cbc1bdef730f21fc5fe2e31f6ebbd0730a76322d1f1f6211b",
+    "audio/10044.wav": "4bd9ec8a07cb16b8c0a8b8ea4f8734f4141970a6512d4111e3d858c2bee3dbf3",
+    "audio/10045.wav": "6b0c05d8ba9d94d44c9331b3b48e6831c06b78d8d39b4bea8a50f13d92d5f88f",
+    "audio/10046.wav": "8752570d0899e70a5ff1326988939cc5bf1a525cc4e54b884c50b9d2636faef8",
+    "audio/10047.wav": "78cf94360b2d9e5e1ad755692dc5bb4894107690d110ecbeddeb8150464d828b",
+    "audio/10048.wav": "1a611112cc67a0058b9b629ac0228a127409c2742a420f51c7aba936dae50f5f",
+    "central.bin": "d3369908e8f88d3d962936a20aee8b7c3ef52a6625d93d5f2252753d4aa72249",
+    "eastern.bin": "26afbee66f96f9aaa7f11e2188bac05e9376d93dcfe542a0f46979797521a1aa",
+    "south.bin": "60f8bc7e92906b7025ba3e415d5636134bc8fc4c4860528ee5d99609f51b8a41",
+    "spectre.bin": "2115103381f3e1dca54738d0139e7c89520f1c0bc9fd60a499c9a6ebff98d2bf"
+  }
+}

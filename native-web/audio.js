@@ -1,6 +1,6 @@
 // Original local-disc samples. Damage-response, flag, extra-life, enemy-clear,
 // and weapon-constructor IDs are recovered; channel scheduling remains provisional.
-export const GAME_SOUND_IDS = [10001,10002,10003,10004,10005,10006,10007,10010,10013,10017,10020,10021,10023,10024,10027,10028,10035,10037,10038,10042,10044,10045,10047];
+export const GAME_SOUND_IDS = [10001,10002,10003,10004,10005,10006,10007,10009,10010,10013,10017,10020,10021,10023,10024,10027,10028,10035,10037,10038,10042,10044,10045,10047];
 export class GameAudio {
   constructor(status) {
     this.status=status; this.context=null; this.buffers=new Map(); this.voices=new Set();
@@ -15,15 +15,18 @@ export class GameAudio {
       await this.context.resume();
       if(!this.loading) this.loading=this.load();
       await this.loading;
-      this.status.textContent=this.muted?'Sound muted':'Original sound effects ready';
+      this.status.textContent=this.muted?'Sound muted':'Sound effects ready';
     } catch(error) {
       this.loading=null;this.status.textContent='Sound unavailable · click Drive tank to retry';
       console.warn('Sound setup failed',error);
     }
   }
   async load() {
-    this.status.textContent='Loading original sound effects…';
-    await Promise.all(GAME_SOUND_IDS.map(async id=>{
+    this.status.textContent='Loading sound effects…';
+    const response=await fetch('/pack.json');
+    if(!response.ok)throw new Error('Asset pack unavailable');
+    const pack=await response.json();
+    await Promise.all(pack.soundIds.map(async id=>{
       const response=await fetch(`/audio/${id}.wav`);
       if(!response.ok) throw new Error(`Sound ${id}: HTTP ${response.status}`);
       this.buffers.set(id,await this.context.decodeAudioData(await response.arrayBuffer()));

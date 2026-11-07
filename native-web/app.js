@@ -4,6 +4,7 @@ const $ = selector => document.querySelector(selector);
 const canvas = $('#view');
 const ctx = canvas.getContext('2d', { alpha: false });
 const status = $('#status');
+let activePack;
 let wasm, entries = [], selected = 0, yaw = 0.65, pitch = 0.3, zoom = 1;
 let filled = true, spinning = !matchMedia('(prefers-reduced-motion: reduce)').matches, dragging = false, lastX = 0, lastY = 0;
 let generation = 0;
@@ -12,7 +13,7 @@ const driveContext = driveCanvas.getContext('2d', { alpha: false });
 const driveHud = new GameHud(driveCanvas);
 const sound = new GameAudio($('#sound-status'));
 $('#sound-volume').oninput = e => { sound.volume=Number(e.target.value)/100; sound.applyVolume(); };
-$('#sound-mute').onclick = e => { sound.muted=!sound.muted; sound.applyVolume(); $('#sound-status').textContent=sound.muted?'Sound muted':'Original sound effects ready'; if(sound.muted)sound.stop(); e.currentTarget.textContent=sound.muted?'Unmute':'Mute'; e.currentTarget.setAttribute('aria-pressed',String(sound.muted)); if(!sound.muted)void sound.unlock(); };
+$('#sound-mute').onclick = e => { sound.muted=!sound.muted; sound.applyVolume(); $('#sound-status').textContent=sound.muted?'Sound muted':'Sound effects ready'; if(sound.muted)sound.stop(); e.currentTarget.textContent=sound.muted?'Unmute':'Mute'; e.currentTarget.setAttribute('aria-pressed',String(sound.muted)); if(!sound.muted)void sound.unlock(); };
 const gamePanel = $('#game-panel');
 const fullscreenButton = $('#fullscreen');
 const fullscreenElement = () => document.fullscreenElement ?? document.webkitFullscreenElement;
@@ -119,7 +120,7 @@ function startArena() {
     $('#play').disabled = true; $('#restart').disabled = true; return;
   }
   const scene = JSON.parse(text());
-  $('#scene-info').textContent = campaignMode ? `${scene.scenario} · ${scene.targets.length} targets · Fresh round` : `${scene.resolved} original model placements · ${scene.unresolved} unresolved shapes · shape-table column 3 · ${scene.scenario} · ${scene.targets.length} targets · Basic shot damage ${scene.primary_damage}`;
+  $('#scene-info').textContent = campaignMode ? `${scene.scenario} · ${scene.targets.length} targets · Fresh round` : `${scene.resolved} model placements · ${scene.targets.length} targets · ${activePack?.id==='open'?'Signal Frontier':scene.scenario}`;
   wasm.game_encounter(Number($('#mode').value));
   gameReady = true; $('#play').disabled = false; $('#restart').disabled = false;
   $('#drive-state').textContent = 'Ready · click Drive tank to start';
@@ -218,8 +219,8 @@ function describe() {
   const e = entries[selected];
   $('#name').textContent = e.name || `World ${e.id}`;
   $('#details').textContent = e.kind === 'shap'
-    ? `shap ${e.id} · ${e.vertices} original vertices · ${e.faces} polygon faces · original radar geometry at lower right`
-    : `wrld ${e.id} · ${e.objects} original placements · top-down map · markers show raw positions and facing; object meanings are not yet resolved`;
+    ? `shap ${e.id} · ${e.vertices} vertices · ${e.faces} polygon faces · overhead geometry at lower right`
+    : `wrld ${e.id} · ${e.objects} placements · top-down map · markers show raw positions and facing; object meanings are not yet resolved`;
   document.querySelectorAll('.model-card').forEach(card => card.setAttribute('aria-pressed', String(Number(card.dataset.index) === selected)));
   draw();
 }
@@ -273,10 +274,10 @@ async function loadBytes(bytes, label) {
 async function loadCampaign() {
   pauseDrive();
   const ownGeneration = ++generation;
-  status.textContent = 'Reading local campaign resources…';
+  status.textContent = 'Loading arena pack…';
   try {
     const response = await fetch(`/data/${$('#campaign').value}.bin`);
-    if (!response.ok) throw new Error('Campaign file missing. Run the extraction command, or open an extracted matrix file.');
+    if (!response.ok) throw new Error('Arena pack missing. See the setup instructions for the selected asset mode.');
     const bytes = await response.arrayBuffer();
     if (generation === ownGeneration) await loadBytes(bytes, $('#campaign').selectedOptions[0].text);
   } catch (e) { if (generation === ownGeneration) status.textContent = e.message; }
@@ -344,12 +345,26 @@ function tick(time) {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseDrive(); else { requestAnimationFrame(draw); gameDraw(); } });
 window.addEventListener('resize', () => requestAnimationFrame(draw));
 try {
+  const packResponse = await fetch('/pack.json');
+  if(!packResponse.ok)throw new Error('Asset pack information unavailable. Restart the server.');
+  activePack=await packResponse.json();
+  $('#pack-status').textContent=`${activePack.name} · ${activePack.description}`;
+  $('#campaign').replaceChildren(...activePack.campaigns.map(c=>new Option(c.name,c.id)));
+  $('#model-count').textContent=activePack.modelCount;
+  $('#model-count-label').textContent=activePack.id==='open'?'Models per zone':'Classic model entries';
+  $('#arena-count').textContent=activePack.arenaCount;
+  $('#sound-count').textContent=activePack.soundIds.length;
+  if(activePack.id==='open'){
+    $('#camera').value='0';
+    $('#camera').options[1].textContent='Chase';
+  }
+  else document.querySelector('.intro p').textContent='Classic disc mode · original resources running in the native Rust engine.';
   const response = await fetch('/spectre_core.wasm');
   if (!response.ok) throw new Error('WASM module missing. Run npm run build:wasm.');
   const { instance } = await WebAssembly.instantiateStreaming(response, {});
   wasm = instance.exports;
   const sharedResponse = await fetch('/data/spectre.bin');
-  if (!sharedResponse.ok) throw new Error('Original executable resources missing. Run the disc extraction command.');
+  if (!sharedResponse.ok) throw new Error(activePack.id==='classic'?'Classic executable resources missing. Extract your disc or use npm start for the bundled pack.':'Bundled resources missing. Run npm run build.');
   const sharedBytes = await sharedResponse.arrayBuffer();
   const sharedPtr = wasm.input_buffer(sharedBytes.byteLength);
   if (!sharedPtr) throw new Error('Unable to allocate the shared resource buffer.');

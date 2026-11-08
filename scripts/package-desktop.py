@@ -23,6 +23,14 @@ def run(*command):
     subprocess.run(command, cwd=ROOT, check=True)
 
 
+def zip_folder(folder, archive):
+    # Cargo license files can retain timestamps older than ZIP's 1980 lower bound.
+    with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, strict_timestamps=False) as bundle:
+        for file in sorted(folder.rglob('*')):
+            if file.is_file():
+                bundle.write(file, file.relative_to(folder.parent))
+
+
 def icon_png(path, size):
     """Draw the app's vector-style radar mark into a PNG with only the standard library."""
     pixels = bytearray()
@@ -157,10 +165,7 @@ def main():
             notices(folder, version, target)
             shutil.copy2(binary, folder / binary.name)
             if host == 'Windows':
-                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as bundle:
-                    for file in folder.rglob('*'):
-                        if file.is_file():
-                            bundle.write(file, file.relative_to(stage))
+                zip_folder(folder, archive)
             else:
                 with tarfile.open(archive, 'w:gz') as bundle:
                     bundle.add(folder, arcname=folder.name)

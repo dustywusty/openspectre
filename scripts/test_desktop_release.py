@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Exercise release failures before a workflow can publish public artifacts."""
 import hashlib
+import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -13,6 +15,10 @@ from unittest.mock import patch
 import zipfile
 
 import desktop_release as release
+
+spec = importlib.util.spec_from_file_location('package_desktop', Path(__file__).with_name('package-desktop.py'))
+packaging = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(packaging)
 
 VERSION = '0.1.0'
 REVISION = 'a' * 40
@@ -57,6 +63,20 @@ def packages(directory, revision=REVISION):
 
 
 class Releases(unittest.TestCase):
+    def test_windows_zip_preserves_old_dependency_licenses(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'OpenSpectre'
+            license_file = folder / 'licenses' / 'dependency' / 'LICENSE'
+            license_file.parent.mkdir(parents=True)
+            license_file.write_bytes(b'License contents must survive packaging.\n')
+            os.utime(license_file, (1, 1))
+            archive = Path(temporary) / 'client.zip'
+            packaging.zip_folder(folder, archive)
+            with zipfile.ZipFile(archive) as bundle:
+                name = 'OpenSpectre/licenses/dependency/LICENSE'
+                self.assertEqual(bundle.read(name), license_file.read_bytes())
+                self.assertEqual(bundle.getinfo(name).date_time, (1980, 1, 1, 0, 0, 0))
+
     def test_tag_must_match_client_version_and_valid_semver(self):
         self.assertFalse(release.validate_tag('v0.1.0', VERSION))
         self.assertTrue(release.validate_tag('v0.2.0-rc.1', '0.2.0-rc.1'))

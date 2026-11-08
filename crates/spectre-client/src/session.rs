@@ -149,8 +149,8 @@ mod tests {
         session.update(1. / 60., Input::default());
         assert_eq!(session.screen, Screen::Results);
         assert_eq!(session.profile.records[&0].wins, 1);
-        session.select(11).unwrap();
+        session.select(assets::ARENA_COUNT - 1).unwrap();
         session.launch().unwrap();
-        assert_eq!(session.profile.last_arena, 11);
+        assert_eq!(session.profile.last_arena, assets::ARENA_COUNT - 1);
     }
 }

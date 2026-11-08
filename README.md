@@ -16,7 +16,7 @@ The browser playground and development tools can also [load assets from your own
 Launch the app, choose **Single player**, select an arena, and choose **Deploy**.
 Collect every beacon to complete the arena, then replay or choose another arena from the results screen.
 
-- Play 12 arenas with native sound, three camera views, a tactical radar, and a readable HUD.
+- Play 16 arenas with native sound, three camera views, a tactical radar, and a readable HUD.
 - Pause with Escape. The game also pauses when its window loses focus.
 - Adjust volume, fullscreen, starting camera, picture filtering, and control hints.
 - Keep your settings, best scores, fastest completions, and wins between sessions.
@@ -26,7 +26,7 @@ Desktop multiplayer rooms and controller support are planned.
 
 | Title screen | Choose an arena |
 | --- | --- |
-| ![OpenSpectre title screen with Single player, Settings, How to play, and Quit](docs/images/desktop-title.png) | ![Arena picker with 12 Signal Frontier arenas](docs/images/desktop-arenas.png) |
+| ![OpenSpectre title screen with Single player, Settings, How to play, and Quit](docs/images/desktop-title.png) | ![Arena picker with 16 Signal Frontier arenas](docs/images/desktop-arenas.png) |
 
 | Pause | Settings |
 | --- | --- |

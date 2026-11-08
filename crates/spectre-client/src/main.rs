@@ -65,7 +65,7 @@ fn act(action: Action, session: &mut Session) -> Result<bool, String> {
         Action::Select(index) => session.select(index)?,
         Action::Launch => session.launch()?,
         Action::Next => {
-            session.select((session.selected + 1) % 12)?;
+            session.select((session.selected + 1) % assets::ARENA_COUNT)?;
             session.launch()?;
         }
         Action::Resume => {

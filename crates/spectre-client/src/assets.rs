@@ -2,11 +2,14 @@ use serde::Deserialize;
 use spectre_core::viewer::Viewer;
 
 pub const SHARED: &[u8] = include_bytes!("../../../assets/open/generated/spectre.bin");
-const ZONES: [&[u8]; 3] = [
+const ZONES: [&[u8]; 4] = [
     include_bytes!("../../../assets/open/generated/central.bin"),
     include_bytes!("../../../assets/open/generated/eastern.bin"),
     include_bytes!("../../../assets/open/generated/south.bin"),
+    include_bytes!("../../../assets/open/generated/midnight.bin"),
 ];
+pub const ARENAS_PER_ZONE: usize = 4;
+pub const ARENA_COUNT: usize = ZONES.len() * ARENAS_PER_ZONE;
 
 #[derive(Deserialize)]
 pub struct Pack {
@@ -32,11 +35,13 @@ pub fn pack() -> Result<Pack, String> {
 }
 
 pub fn viewer(arena: usize, camera: u32) -> Result<Viewer, String> {
-    let bytes = ZONES.get(arena / 4).ok_or("Arena is unavailable")?;
+    let bytes = ZONES
+        .get(arena / ARENAS_PER_ZONE)
+        .ok_or("Arena is unavailable")?;
     let mut viewer = Viewer::default();
     viewer.load_shared_colors(SHARED)?;
     viewer.load(bytes)?;
-    let id = 10000 + (arena % 4) as i16;
+    let id = 10000 + (arena % ARENAS_PER_ZONE) as i16;
     let world = viewer
         .entries
         .iter()
@@ -70,9 +75,9 @@ mod tests {
         let pack = pack().unwrap();
         assert_eq!(pack.zones.len(), ZONES.len());
         for (zone, metadata) in pack.zones.iter().enumerate() {
-            assert_eq!(metadata.arenas.len(), 4);
+            assert_eq!(metadata.arenas.len(), ARENAS_PER_ZONE);
             for (index, arena) in metadata.arenas.iter().enumerate() {
-                let mut viewer = viewer(zone * 4 + index, 1).unwrap();
+                let mut viewer = viewer(zone * ARENAS_PER_ZONE + index, 1).unwrap();
                 let game = viewer.game.as_ref().unwrap();
                 assert!(game.encounter.enabled, "{}", arena.name);
                 assert!(game.flags.total > 0, "{}", arena.name);
@@ -104,6 +109,6 @@ mod tests {
             assert_eq!(&wav[..4], b"RIFF");
             assert!(wav.len() > 44);
         }
-        assert!(viewer(12, 0).is_err());
+        assert!(viewer(ARENA_COUNT, 0).is_err());
     }
 }

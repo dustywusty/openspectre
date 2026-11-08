@@ -87,7 +87,7 @@ impl Smoke {
                 Action::None
             }
             330 => Action::Arenas,
-            340 => Action::Select(11),
+            340 => Action::Select(spectre_client::assets::ARENA_COUNT - 1),
             350 => Action::Launch,
             370 => {
                 session.pause();

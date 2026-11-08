@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 use spectre_client::{
-    assets::Pack,
+    assets::{ARENA_COUNT, ARENAS_PER_ZONE, Pack},
     session::{Screen, Session},
 };
 
@@ -86,7 +86,7 @@ impl Ui {
             self.screen = screen;
         }
         if self.previous_count > 0 {
-            let grid = screen == Screen::Arenas && self.focus < 12;
+            let grid = screen == Screen::Arenas && self.focus < ARENA_COUNT;
             let mut delta = 0;
             if is_key_pressed(KeyCode::Down) {
                 delta = if grid { 4 } else { 1 };
@@ -247,7 +247,8 @@ impl Ui {
     }
 
     pub fn draw(&mut self, session: &Session, pack: &Pack, texture: &Texture2D) {
-        let arena = &pack.zones[session.selected / 4].arenas[session.selected % 4];
+        let arena = &pack.zones[session.selected / ARENAS_PER_ZONE].arenas
+            [session.selected % ARENAS_PER_ZONE];
         let settings = &session.profile.settings;
         match session.screen {
             Screen::Title => {
@@ -282,7 +283,13 @@ impl Ui {
                     false,
                 );
                 self.button(Rect::new(64., 590., 340., 52.), "Quit", Action::Quit, false);
-                self.text("12 ARENAS  /  3 REGIONS", 836., 654., 18., ACCENT);
+                self.text(
+                    &format!("{ARENA_COUNT} ARENAS  /  {} REGIONS", pack.zones.len()),
+                    836.,
+                    654.,
+                    18.,
+                    ACCENT,
+                );
                 self.text(&arena.name, 836., 687., 26., INK);
                 self.footer("ARROWS select    ENTER confirm    F fullscreen");
             }
@@ -293,18 +300,18 @@ impl Ui {
                     "Collect every beacon to win. You have three lives. Keep moving.",
                 );
                 for (zone_index, zone) in pack.zones.iter().enumerate() {
-                    let y = 212. + zone_index as f32 * 142.;
+                    let y = 196. + zone_index as f32 * 112.;
                     self.text(&zone.name.to_uppercase(), 64., y, 16., ACCENT);
                     for (arena_index, arena) in zone.arenas.iter().enumerate() {
-                        let index = zone_index * 4 + arena_index;
+                        let index = zone_index * ARENAS_PER_ZONE + arena_index;
                         let x = 64. + arena_index as f32 * 292.;
-                        let r = Rect::new(x, y + 14., 276., 102.);
+                        let r = Rect::new(x, y + 14., 276., 88.);
                         self.button(r, "", Action::Select(index), false);
                         if session.selected == index {
                             self.border(Rect::new(r.x + 3., r.y + 3., r.w - 6., r.h - 6.), ACCENT);
                         }
-                        self.text(&format!("{:02}", index + 1), x + 16., y + 42., 15., MUTED);
-                        self.text(&arena.name, x + 16., y + 72., 23., INK);
+                        self.text(&format!("{:02}", index + 1), x + 16., y + 34., 15., MUTED);
+                        self.text(&arena.name, x + 16., y + 58., 23., INK);
                         let record = session.profile.records.get(&index);
                         let detail = record
                             .filter(|r| r.wins > 0)
@@ -313,7 +320,7 @@ impl Ui {
                         self.text(
                             &detail,
                             x + 16.,
-                            y + 97.,
+                            y + 82.,
                             13.,
                             if record.is_some() { ACCENT } else { MUTED },
                         );
@@ -516,12 +523,12 @@ impl Ui {
 
     fn game(&mut self, session: &Session, pack: &Pack, texture: &Texture2D) {
         let game = session.viewer.game.as_ref().unwrap();
-        let zone = &pack.zones[session.selected / 4];
-        let arena = &zone.arenas[session.selected % 4];
+        let zone = &pack.zones[session.selected / ARENAS_PER_ZONE];
+        let arena = &zone.arenas[session.selected % ARENAS_PER_ZONE];
         self.text("SIGNAL FRONTIER", 32., 34., 16., ACCENT);
         self.text(&arena.name, 32., 71., 32., INK);
         self.text(
-            &format!("{} / 12", session.selected + 1),
+            &format!("{} / {ARENA_COUNT}", session.selected + 1),
             310.,
             68.,
             18.,
@@ -695,7 +702,7 @@ impl Ui {
     fn results(&mut self, session: &Session) {
         let game = session.viewer.game.as_ref().unwrap();
         let won = game.encounter.status == "won";
-        let last = session.selected == 11;
+        let last = session.selected == ARENA_COUNT - 1;
         self.modal(
             if won {
                 "Signal recovered"

@@ -56,7 +56,7 @@ impl Profile {
                 }
                 profile.settings.volume = profile.settings.volume.clamp(0., 1.);
                 profile.settings.camera = profile.settings.camera.min(2);
-                profile.last_arena = profile.last_arena.min(11);
+                profile.last_arena = profile.last_arena.min(crate::assets::ARENA_COUNT - 1);
                 Ok(profile)
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
@@ -136,7 +136,7 @@ mod tests {
         let read = Profile::load(&path).unwrap();
         assert_eq!(read.settings.volume, 1.);
         assert_eq!(read.settings.camera, 2);
-        assert_eq!(read.last_arena, 11);
+        assert_eq!(read.last_arena, crate::assets::ARENA_COUNT - 1);
         assert!(read.settings.control_hints);
         fs::write(&path, b"broken").unwrap();
         assert!(Profile::load(&path).is_err());

@@ -1,7 +1,7 @@
 # OpenSpectre desktop client
 
 The desktop client runs the same Rust game core as the web playground.
-It includes all 12 Signal Frontier arenas, 48 sound effects, and its interface font.
+It includes all 16 Signal Frontier arenas, 48 sound effects, and its interface font.
 It does not require a server, a browser, Node.js, or an original game disc.
 
 ## Play

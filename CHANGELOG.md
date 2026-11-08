@@ -1088,4 +1088,3 @@ Verified desktop and browser reference frames pixel-for-pixel. The WebAssembly m
 ### 2026-11-07 — Original geometry recovered
 
 Decoded shape, world, wave, enemy, and combat-value resources from the three campaign archives. Model colors and shading remain diagnostic.
-

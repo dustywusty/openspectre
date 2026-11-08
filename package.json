@@ -36,12 +36,16 @@
     "build": "npm run build:assets && npm run build:wasm",
     "test:open": "node scripts/verify-open-pack.mjs",
     "test:open-network": "node scripts/verify-multiplayer.mjs --open",
-    "test:open:record": "node scripts/verify-open-pack.mjs --record"
+    "test:open:record": "node scripts/verify-open-pack.mjs --record",
+    "test:multiplayer:record": "node scripts/record-multiplayer.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
     "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.0"
   }
 }

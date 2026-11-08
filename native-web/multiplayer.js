@@ -44,7 +44,7 @@ export class Multiplayer {
   async enable(value){
     this.active=value;this.panel.hidden=!value;
     if(!value){this.leave();return;}
-    if(!this.w) {this.status('Loading multiplayer renderer…');try{await this.load();this.status('Create a room, or join your friend’s room.');}catch(e){this.status(`Could not load multiplayer: ${e.message}`);return;}}
+    if(!this.w) {this.status('Loading multiplayer renderer…');try{await this.load();this.status('Not connected');}catch(e){this.status(`Could not load multiplayer: ${e.message}`);return;}}
     if(!this.active)return;
     $('#mp-create').disabled=Boolean(this.ws);$('#mp-join').disabled=Boolean(this.ws);
     if(this.invitePending&&!this.ws){
@@ -58,7 +58,7 @@ export class Multiplayer {
       const config=await fetch('/pack.json');
       if(!config.ok)throw new Error('Asset pack information unavailable');
       this.packId=(await config.json()).id;
-      $('#mp-camera').options[0].textContent=this.packId==='open'?'First person':'Cockpit (research)';
+      $('#mp-camera').options[0].textContent=this.packId==='open'?'First person':'First person';
       const [bytes,shared,arena]=await Promise.all([get('/spectre_core.wasm'),get('/data/spectre.bin'),get('/data/central.bin')]);
       this.w=(await WebAssembly.instantiate(bytes,{})).instance.exports;
       for(const [bytes,fn] of [[shared,'load_shared_colors'],[arena,'load_archive']]){this.feed(new Uint8Array(bytes));if(!this.w[fn]())throw new Error('Original assets could not load');}
@@ -127,7 +127,7 @@ export class Multiplayer {
         $('#mp-score').textContent=`You ${me.kills} — ${other.kills} Opponent · Hull ${me.health}/3 · First to 5`;
         const ready=msg.connected.every(Boolean);
         const winner=msg.state.winner;
-        this.status(!ready?'Waiting for another player · share the invite link':winner!==null?(winner===this.slot?'You win!':'Opponent wins!'):me.respawn>0?`Respawning in ${(me.respawn/60).toFixed(1)}s`:me.shield>0?'Spawn shield · firing ends protection':'Live · click the arena to drive');
+        this.status(!ready?'Waiting for opponent':winner!==null?(winner===this.slot?'You win!':'Opponent wins!'):me.respawn>0?`Respawning in ${(me.respawn/60).toFixed(1)}s`:me.shield>0?'Spawn shield · firing ends protection':'Live');
         this.hud.updateMultiplayer(msg.state,{slot:this.slot??0,connected:msg.connected});
         $('#mp-rematch').hidden=winner===null;$('#mp-rematch').disabled=!ready||msg.rematch[this.slot??0];
         $('#mp-rematch-note').textContent=msg.rematch.some(Boolean)?'Rematch requested · both players must agree':'';
@@ -142,7 +142,7 @@ export class Multiplayer {
     this.hud.clear();
     this.attempt=(this.attempt??0)+1;
     this.release();const ws=this.ws;this.ws=null;ws?.close();this.slot=null;this.latest=null;this.previous=null;this.predicted=null;this.correction=null;this.pending=[];this.round=null;this.ready=false;this.sound.stop();
-    $('#mp-create').disabled=!this.w;$('#mp-join').disabled=!this.w;$('#mp-leave').disabled=true;$('#mp-invite').hidden=true;$('#mp-rematch').hidden=true;$('#mp-rematch-note').textContent='';$('#mp-score').textContent='Two players · First to 5 · Cannons only';$('#mp-latency').textContent='';this.status('Create a room, or join your friend’s room.');
+    $('#mp-create').disabled=!this.w;$('#mp-join').disabled=!this.w;$('#mp-leave').disabled=true;$('#mp-invite').hidden=true;$('#mp-rematch').hidden=true;$('#mp-rematch-note').textContent='';$('#mp-score').textContent='Two players · First to 5 · Cannons only';$('#mp-latency').textContent='';this.status('Not connected');
   }
   output(){return JSON.parse(new TextDecoder().decode(new Uint8Array(this.w.memory.buffer,this.w.output_ptr(),this.w.output_len())));}
   predict(input,audio){

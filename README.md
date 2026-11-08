@@ -27,7 +27,7 @@ npm run build
 npm start
 ```
 
-Open **http://localhost:5174/#drive**. Click **Drive tank** to play.
+Open **http://localhost:5174/#drive**. Click **Play** to play.
 
 | Drive | Shoot | Change view | Fullscreen |
 | --- | --- | --- | --- |
@@ -36,3 +36,5 @@ Open **http://localhost:5174/#drive**. Click **Drive tank** to play.
 For multiplayer, create a room and share its invitation link. See [setup for friends on other computers](docs/multiplayer.md).
 
 [Classic disc setup](docs/asset-packs.md) · [Native desktop and tools](docs/development-history.md#native-desktop-viewer) · [Recovery notes](docs/disassembly.md) · [Tests and recordings](docs/build-evidence.md)
+
+[Changelog](CHANGELOG.md)

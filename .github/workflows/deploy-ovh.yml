@@ -28,10 +28,11 @@ jobs:
     outputs:
       revision: ${{ steps.revision.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -58,7 +59,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.revision.outputs.sha }}
         run: docker save "openspectre:$IMAGE_TAG" | gzip > image.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.event_name != 'pull_request'
         with:
           name: production-image
@@ -73,10 +74,7 @@ jobs:
       name: production
       url: https://spectre.bitchimfabulo.us
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.image.outputs.revision }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: production-image
       - name: Deploy only the current main commit
@@ -93,6 +91,7 @@ jobs:
             echo 'A newer main commit exists; skipping this deployment.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          umask 077
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/openspectre

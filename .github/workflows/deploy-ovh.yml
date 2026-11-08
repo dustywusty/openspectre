@@ -1,0 +1,104 @@
+name: OVH deployment
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - deploy/**
+      - scripts/smoke-deployment.mjs
+      - .github/workflows/deploy-ovh.yml
+  workflow_run:
+    workflows: [Standalone game]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ovh-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
+  cancel-in-progress: false
+jobs:
+  image:
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    outputs:
+      revision: ${{ steps.revision.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Build tested production image
+        env:
+          IMAGE_TAG: ${{ steps.revision.outputs.sha }}
+        run: docker build --platform linux/amd64 -t "openspectre:$IMAGE_TAG" .
+      - name: Check HTTP and multiplayer in the container
+        env:
+          IMAGE_TAG: ${{ steps.revision.outputs.sha }}
+        run: |
+          docker compose -f deploy/compose.yaml up -d --wait --wait-timeout 90
+          node scripts/smoke-deployment.mjs http://127.0.0.1:18081
+      - name: Stop test container
+        if: always()
+        env:
+          IMAGE_TAG: ${{ steps.revision.outputs.sha }}
+        run: docker compose -f deploy/compose.yaml down
+      - name: Export production image
+        if: github.event_name != 'pull_request'
+        env:
+          IMAGE_TAG: ${{ steps.revision.outputs.sha }}
+        run: docker save "openspectre:$IMAGE_TAG" | gzip > image.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: production-image
+          path: image.tar.gz
+          retention-days: 3
+          compression-level: 0
+  deploy:
+    needs: image
+    if: github.event_name != 'pull_request' && vars.OVH_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://spectre.bitchimfabulo.us
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.image.outputs.revision }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-image
+      - name: Deploy only the current main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ needs.image.outputs.revision }}
+          OVH_HOST: ${{ vars.OVH_HOST }}
+          OVH_USER: ${{ vars.OVH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.OVH_DEPLOY_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.OVH_KNOWN_HOSTS }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$current" != "$IMAGE_TAG" ]; then
+            echo 'A newer main commit exists; skipping this deployment.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/openspectre
+          chmod 600 ~/.ssh/openspectre
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/openspectre' EXIT
+          ssh -i ~/.ssh/openspectre -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 "$OVH_USER@$OVH_HOST" "$IMAGE_TAG" < image.tar.gz
+          curl --fail --retry 5 --retry-delay 3 https://spectre.bitchimfabulo.us/pack.json
+          echo "Deployed $IMAGE_TAG to https://spectre.bitchimfabulo.us" >> "$GITHUB_STEP_SUMMARY"

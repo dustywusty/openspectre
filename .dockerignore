@@ -1,0 +1,17 @@
+*
+!Cargo.toml
+!Cargo.lock
+!crates/
+!crates/**
+!package.json
+!package-lock.json
+!native-server.mjs
+!multiplayer-server.mjs
+!asset-pack.mjs
+!native-web/
+!native-web/**
+native-web/spectre_core.wasm
+!assets/
+!assets/open/
+!assets/open/generated/
+!assets/open/generated/**

@@ -39,4 +39,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 attachDeathmatch(server, { pack });
-server.listen(port, '127.0.0.1', () => console.log(`${pack.public.name}: http://localhost:${server.address().port}`));
+server.listen(port, process.env.NATIVE_HOST || '127.0.0.1', () => console.log(`${pack.public.name}: http://localhost:${server.address().port}`));

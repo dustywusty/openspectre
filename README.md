@@ -1,21 +1,82 @@
 # OpenSpectre
 
-A native Rust reconstruction of **Spectre VR**, the classic Macintosh tank game, playable in your browser through WebAssembly.
-Still in development, with single-player combat and two-player multiplayer.
+A Rust reconstruction of **Spectre VR**, the classic Macintosh tank game, with a native desktop client and a browser playground through WebAssembly.
+The desktop client offers single-player combat. The browser playground also supports two-player multiplayer.
+Both share the same simulation and renderer in `spectre-core`. The project is still in development.
 
 The bundled **Signal Frontier** pack includes 16 new arenas, models, and sounds. No original disc is needed.
-You can also [load assets from your own classic disc](docs/asset-packs.md).
+The browser playground and development tools can also [load assets from your own classic disc](docs/asset-packs.md).
 
-![Chase view: cyan player tank facing enemy tanks and arena cover](docs/images/chase.png)
+![Native desktop gameplay in Crosscurrent, with the tank arena, beacon count, score, tactical radar, hull, ammunition, and lives](docs/images/desktop-gameplay.png)
 
-| Cockpit | Overhead |
+*Actual native client capture on macOS, including the game HUD.*
+
+## Desktop client
+
+Launch the app, choose **Single player**, select an arena, and choose **Deploy**.
+Collect every beacon to complete the arena, then replay or choose another arena from the results screen.
+
+- Play 12 arenas with native sound, three camera views, a tactical radar, and a readable HUD.
+- Pause with Escape. The game also pauses when its window loses focus.
+- Adjust volume, fullscreen, starting camera, picture filtering, and control hints.
+- Keep your settings, best scores, fastest completions, and wins between sessions.
+
+The app includes the Signal Frontier assets and runs without a server, browser, or original disc.
+Desktop multiplayer rooms and controller support are planned.
+
+| Title screen | Choose an arena |
 | --- | --- |
-| ![First-person view across Crosscurrent](docs/images/cockpit.png) | ![Overhead map of tanks, beacons, and cover](docs/images/overhead.png) |
+| ![OpenSpectre title screen with Single player, Settings, How to play, and Quit](docs/images/desktop-title.png) | ![Arena picker with 12 Signal Frontier arenas](docs/images/desktop-arenas.png) |
 
-*Actual game captures. Browser HUD overlays are not shown.*
+| Pause | Settings |
+| --- | --- |
+| ![Paused game with Resume, Settings, How to play, and Leave arena controls](docs/images/desktop-pause.png) | ![Native settings for sound, display, camera, picture filtering, and control hints](docs/images/desktop-settings.png) |
 
-## Run it
+*Screenshots from the packaged macOS client.*
 
+### Run from source
+
+Requires **Rust 1.88+** and your platform's compiler tools.
+On Debian or Ubuntu, install `libasound2-dev` first.
+
+```sh
+git clone https://github.com/dustywusty/openspectre.git
+cd openspectre
+cargo run --locked --release -p spectre-client
+```
+
+| Drive | Shoot | Change view | Pause | Fullscreen | Mute |
+| --- | --- | --- | --- | --- | --- |
+| WASD / arrows | Space | Tab | Escape | F / F11 | M |
+
+See [desktop controls, saved data, and platform requirements](docs/desktop-client.md).
+
+### Desktop releases
+
+The release workflow builds six native packages:
+
+| Operating system | Architectures | Package |
+| --- | --- | --- |
+| macOS | Apple silicon (ARM64), Intel (x86-64) | `.app` in ZIP |
+| Windows | ARM64, x86-64 | EXE in ZIP |
+| Linux | ARM64, x86-64 | TAR.GZ |
+
+Push a matching version tag, such as `v0.1.0`, to build and test all six packages.
+After every build passes, the workflow publishes the packages and SHA-256 checksums to GitHub Releases.
+Publishing a GitHub Release also starts the builds. Branch and pull-request runs produce Actions artifacts.
+See the [release process](docs/desktop-releases.md) for versioning, platform requirements, signing status, and manual builds.
+
+To create a package for your current platform, install **Python 3** and run:
+
+```sh
+python3 scripts/package-desktop.py
+```
+
+Packages appear in `artifacts/desktop/` with the game assets and license notices included.
+
+## Browser playground
+
+Use the playground for quick access, multiplayer rooms, experiments, and debugging.
 Requires **Rust 1.88+**, **Node.js 22+**, and **Python 3**.
 
 ```sh
@@ -35,6 +96,12 @@ Open **http://localhost:5174/#drive**. Click **Play** to play.
 
 For multiplayer, create a room and share its invitation link. See [setup for friends on other computers](docs/multiplayer.md).
 
-[Classic disc setup](docs/asset-packs.md) · [Native desktop and tools](docs/development-history.md#native-desktop-viewer) · [Recovery notes](docs/disassembly.md) · [Tests and recordings](docs/build-evidence.md)
+| Cockpit | Overhead |
+| --- | --- |
+| ![First-person view across Crosscurrent](docs/images/cockpit.png) | ![Overhead map of tanks, beacons, and cover](docs/images/overhead.png) |
+
+*Browser game captures. Browser HUD overlays are not shown.*
+
+[Classic disc setup](docs/asset-packs.md) · [Development tools](docs/development-history.md#native-desktop-viewer) · [Recovery notes](docs/disassembly.md) · [Tests and recordings](docs/build-evidence.md)
 
 [Changelog](CHANGELOG.md)

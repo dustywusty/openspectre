@@ -3,7 +3,7 @@ WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 RUN rustup target add wasm32-unknown-unknown \
-    && cargo test --locked --workspace \
+    && cargo test --locked --workspace --exclude spectre-client \
     && cargo build --locked -p spectre-core --release --target wasm32-unknown-unknown
 
 FROM node:22-bookworm-slim AS runtime

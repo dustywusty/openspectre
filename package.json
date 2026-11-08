@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start:desktop": "cargo run --locked --release -p spectre-client",
+    "package:desktop": "python3 scripts/package-desktop.py",
+    "test:desktop": "cargo test --locked -p spectre-client",
     "start": "node native-server.mjs",
     "start:native": "node native-server.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",

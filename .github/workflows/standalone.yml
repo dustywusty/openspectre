@@ -57,6 +57,9 @@ jobs:
     needs: no-disc
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.no-disc.outputs.recording != ''
     runs-on: ubuntu-latest
+    concurrency:
+      group: pr-media-publication
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
@@ -74,42 +77,61 @@ jobs:
           script: |
             const fs = require('node:fs');
             const files = [
-              ['01-combat.mp4', 'video/mp4'],
-              ['02-death.mp4', 'video/mp4'],
-              ['03-beacon-mission.mp4', 'video/mp4'],
-              ['cockpit.png', 'image/png'],
-              ['chase.png', 'image/png'],
-              ['overhead.png', 'image/png'],
+              '01-combat.gif', '02-death.gif', '03-beacon-mission.gif',
+              'cockpit.png', 'chase.png', 'overhead.png',
             ];
             const media = {};
-            // Upload bytes only. This job never checks out or executes PR code.
-            for (const [name, type] of files) {
+            const tree = [];
+            const branch = 'pr-media';
+            const prefix = `pr-${context.issue.number}/${context.payload.pull_request.head.sha}/${context.runId}-${process.env.GITHUB_RUN_ATTEMPT}`;
+            let parent;
+            try {
+              const ref = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
+              parent = (await github.rest.git.getCommit({...context.repo, commit_sha: ref.data.object.sha})).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            // Store only preview images. This job never checks out or executes PR code.
+            for (const name of files) {
               const path = `playthrough/${name}`;
               if (!fs.existsSync(path) || fs.statSync(path).size === 0) continue;
+              if (fs.statSync(path).size > 8 * 1024 * 1024) throw new Error(`Preview is too large: ${name}`);
               const data = fs.readFileSync(path);
-              const query = new URLSearchParams({
-                name, content_type: type,
-                repository_id: String(context.payload.repository.id),
+              const valid = name.endsWith('.gif')
+                ? data.subarray(0, 6).toString() === 'GIF89a'
+                : data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+              if (!valid) throw new Error(`Invalid preview image: ${name}`);
+              const blob = await github.rest.git.createBlob({
+                ...context.repo, content: data.toString('base64'), encoding: 'base64',
               });
-              const response = await github.request(`POST https://uploads.github.com/user-attachments/assets?${query}`, {
-                data,
-                headers: {'content-type': 'application/octet-stream', 'content-length': String(data.length)},
-              });
-              if (!response.data.url) throw new Error(`No attachment URL for ${name}`);
-              media[name] = response.data.url;
+              tree.push({path: `${prefix}/${name}`, mode: '100644', type: 'blob', sha: blob.data.sha});
             }
+            if (!tree.length) throw new Error('No preview images were produced');
+            const newTree = await github.rest.git.createTree({
+              ...context.repo, tree, ...(parent ? {base_tree: parent.tree.sha} : {}),
+            });
+            const commit = await github.rest.git.createCommit({
+              ...context.repo, tree: newTree.data.sha, parents: parent ? [parent.sha] : [],
+              message: `Preview PR #${context.issue.number}, run ${context.runId}`,
+            });
+            if (parent) {
+              await github.rest.git.updateRef({...context.repo, ref: `heads/${branch}`, sha: commit.data.sha, force: false});
+            } else {
+              await github.rest.git.createRef({...context.repo, ref: `refs/heads/${branch}`, sha: commit.data.sha});
+            }
+            for (const item of tree) media[item.path.split('/').at(-1)] = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${commit.data.sha}/${item.path}`;
             const clips = [
-              ['01-combat.mp4', 'Cannon combat · normal health'],
-              ['02-death.mp4', 'Enemy damage and death · normal health'],
-              ['03-beacon-mission.mp4', 'Beacon mission · infinite health navigation test'],
+              ['01-combat.gif', 'Cannon combat · normal health'],
+              ['02-death.gif', 'Enemy damage and death · normal health'],
+              ['03-beacon-mission.gif', 'Beacon mission · infinite health navigation test'],
             ].filter(([name]) => media[name])
-              .map(([name, caption]) => `**${caption}**\n\n${media[name]}`).join('\n\n');
+              .map(([name, caption]) => `**${caption}**\n\n![${caption}](${media[name]})`).join('\n\n');
             const screenshots = ['cockpit', 'chase', 'overhead']
               .filter(name => media[`${name}.png`])
               .map(name => `![${name} camera](${media[`${name}.png`]})`).join('\n\n');
             const marker = '<!-- openspectre-playthrough -->';
             const body = `${marker}
-            **Gameplay recording** · commit ${context.payload.pull_request.head.sha}
+            **Gameplay previews** · commit ${context.payload.pull_request.head.sha}
             Build result: **${process.env.CHECK_RESULT}**
 
             Actual WASM framebuffer captures. Silent, without the browser HUD or native desktop interface. Failed tests may leave partial clips.

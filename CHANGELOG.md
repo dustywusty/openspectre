@@ -1,5 +1,13 @@
 # Changelog
 
+## Desktop client 0.1.0
+
+- Released the native single-player client for macOS, Windows, and Linux on x86-64 and ARM64.
+- Included all 16 Signal Frontier arenas, native sound, saved settings, arena records, pause, and replay.
+- Fixed Windows ZIP packaging for dependency license files with timestamps before 1980.
+- Added direct desktop downloads to the README.
+- Kept desktop multiplayer rooms and controller support as future work.
+
 ## Desktop client 0.1.0-rc.1
 
 - Added a standalone Rust client with 16 bundled Signal Frontier arenas, including Midnight Circuit, and native sound effects.

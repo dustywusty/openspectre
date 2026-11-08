@@ -13,6 +13,20 @@ The browser playground and development tools can also [load assets from your own
 
 ## Desktop client
 
+**[Download OpenSpectre 0.1.0](https://github.com/dustywusty/openspectre/releases/tag/v0.1.0)**
+
+| Computer | Download |
+| --- | --- |
+| Mac with Apple silicon | [macOS ARM64](https://github.com/dustywusty/openspectre/releases/download/v0.1.0/OpenSpectre-0.1.0-macos-arm64.zip) |
+| Mac with Intel | [macOS x86-64](https://github.com/dustywusty/openspectre/releases/download/v0.1.0/OpenSpectre-0.1.0-macos-x86_64.zip) |
+| Windows with Intel or AMD | [Windows x86-64](https://github.com/dustywusty/openspectre/releases/download/v0.1.0/OpenSpectre-0.1.0-windows-x86_64.zip) |
+| Windows on ARM | [Windows ARM64](https://github.com/dustywusty/openspectre/releases/download/v0.1.0/OpenSpectre-0.1.0-windows-arm64.zip) |
+| Linux with Intel or AMD | [Linux x86-64](https://github.com/dustywusty/openspectre/releases/download/v0.1.0/OpenSpectre-0.1.0-linux-x86_64.tar.gz) |
+| Linux on ARM64 | [Linux ARM64](https://github.com/dustywusty/openspectre/releases/download/v0.1.0/OpenSpectre-0.1.0-linux-arm64.tar.gz) |
+
+Extract the archive, then open the app. The macOS app is not notarized; Windows packages do not have an Authenticode signature.
+See the release notes for first-launch instructions and platform requirements.
+
 Launch the app, choose **Single player**, select an arena, and choose **Deploy**.
 Collect every beacon to complete the arena, then replay or choose another arena from the results screen.
 

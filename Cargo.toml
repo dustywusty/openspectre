@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/spectre-core", "crates/spectre-tools"]
+members = ["crates/spectre-core", "crates/spectre-tools", "crates/spectre-client"]
 resolver = "2"
 
 [profile.release]

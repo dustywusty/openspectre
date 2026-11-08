@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       recording: ${{ steps.recording.outputs.artifact-url }}
+      recording-id: ${{ steps.recording.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -23,6 +24,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - run: cargo fmt --all --check
       - run: cargo test --workspace
       - run: cargo clippy --workspace --all-targets -- -D warnings
@@ -55,25 +57,95 @@ jobs:
     needs: no-disc
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.no-disc.outputs.recording != ''
     runs-on: ubuntu-latest
+    concurrency:
+      group: pr-media-publication
+      cancel-in-progress: false
     permissions:
+      contents: write
       pull-requests: write
     steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.no-disc.outputs.recording-id }}
+          path: playthrough
+          merge-multiple: true
       - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           RECORDING_URL: ${{ needs.no-disc.outputs.recording }}
           CHECK_RESULT: ${{ needs.no-disc.result }}
         with:
           script: |
+            const fs = require('node:fs');
+            const files = [
+              '01-combat.gif', '02-death.gif', '03-beacon-mission.gif',
+              'cockpit.png', 'chase.png', 'overhead.png',
+            ];
+            const media = {};
+            const tree = [];
+            const branch = 'pr-media';
+            const prefix = `pr-${context.issue.number}/${context.payload.pull_request.head.sha}/${context.runId}-${process.env.GITHUB_RUN_ATTEMPT}`;
+            let parent;
+            try {
+              const ref = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
+              parent = (await github.rest.git.getCommit({...context.repo, commit_sha: ref.data.object.sha})).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            // Store only preview images. This job never checks out or executes PR code.
+            for (const name of files) {
+              const path = `playthrough/${name}`;
+              if (!fs.existsSync(path) || fs.statSync(path).size === 0) continue;
+              if (fs.statSync(path).size > 8 * 1024 * 1024) throw new Error(`Preview is too large: ${name}`);
+              const data = fs.readFileSync(path);
+              const valid = name.endsWith('.gif')
+                ? data.subarray(0, 6).toString() === 'GIF89a'
+                : data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+              if (!valid) throw new Error(`Invalid preview image: ${name}`);
+              const blob = await github.rest.git.createBlob({
+                ...context.repo, content: data.toString('base64'), encoding: 'base64',
+              });
+              tree.push({path: `${prefix}/${name}`, mode: '100644', type: 'blob', sha: blob.data.sha});
+            }
+            if (!tree.length) throw new Error('No preview images were produced');
+            const newTree = await github.rest.git.createTree({
+              ...context.repo, tree, ...(parent ? {base_tree: parent.tree.sha} : {}),
+            });
+            const commit = await github.rest.git.createCommit({
+              ...context.repo, tree: newTree.data.sha, parents: parent ? [parent.sha] : [],
+              message: `Preview PR #${context.issue.number}, run ${context.runId}`,
+            });
+            if (parent) {
+              await github.rest.git.updateRef({...context.repo, ref: `heads/${branch}`, sha: commit.data.sha, force: false});
+            } else {
+              await github.rest.git.createRef({...context.repo, ref: `refs/heads/${branch}`, sha: commit.data.sha});
+            }
+            for (const item of tree) media[item.path.split('/').at(-1)] = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${commit.data.sha}/${item.path}`;
+            const clips = [
+              ['01-combat.gif', 'Cannon combat · normal health'],
+              ['02-death.gif', 'Enemy damage and death · normal health'],
+              ['03-beacon-mission.gif', 'Beacon mission · infinite health navigation test'],
+            ].filter(([name]) => media[name])
+              .map(([name, caption]) => `**${caption}**\n\n![${caption}](${media[name]})`).join('\n\n');
+            const screenshots = ['cockpit', 'chase', 'overhead']
+              .filter(name => media[`${name}.png`])
+              .map(name => `![${name} camera](${media[`${name}.png`]})`).join('\n\n');
             const marker = '<!-- openspectre-playthrough -->';
             const body = `${marker}
-            **Gameplay recording** · commit ${context.payload.pull_request.head.sha}
+            **Gameplay previews** · commit ${context.payload.pull_request.head.sha}
             Build result: **${process.env.CHECK_RESULT}**
 
-            [Download MP4s and screenshots](${process.env.RECORDING_URL}) · [Build log](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            Actual WASM framebuffer captures. Silent, without the browser HUD or native desktop interface. Failed tests may leave partial clips.
 
-            Cannon combat, enemy damage/death, and a complete beacon mission from the actual WASM test. The beacon navigation test uses infinite health, labeled on screen. Silent framebuffer capture; browser HUD/audio and network play are not recorded. Failed runs may contain partial clips.
+            ${clips}
 
-            Downloads require GitHub sign-in and expire after 30 days.`;
+            ${screenshots}
+
+            <details>
+            <summary>Build details and original files</summary>
+
+            [Build log](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) · [Original recordings](${process.env.RECORDING_URL}) (30-day retention).
+
+            </details>`;
             const params = {...context.repo, issue_number: context.issue.number};
             const comments = await github.paginate(github.rest.issues.listComments, params);
             const previous = comments.find(c => c.user.login === 'github-actions[bot]' && c.body.includes(marker));

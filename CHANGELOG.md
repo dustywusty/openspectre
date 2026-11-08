@@ -1,5 +1,14 @@
 # Changelog
 
+## Desktop client 0.1.0-rc.1
+
+- Added a standalone Rust client with 16 bundled Signal Frontier arenas, including Midnight Circuit, and native sound effects.
+- Added a title screen, arena selection, tactical radar, pause, settings, results, and replay.
+- Added saved settings, arena records, fullscreen controls, and automatic pause on focus loss.
+- Added desktop packaging with embedded assets, an app icon, and license notices.
+- Added version-tag releases for macOS, Windows, and Linux on x86-64 and ARM64.
+- Added package identity checks, SHA-256 checksums, and release validation tests.
+
 ## Client cleanup
 
 The client opens directly to the game. Asset tools and diagnostics are optional panels.

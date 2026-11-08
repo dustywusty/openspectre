@@ -1,0 +1,23 @@
+name: openspectre
+services:
+  game:
+    image: openspectre:${IMAGE_TAG:?Set IMAGE_TAG to a build commit}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:18081:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

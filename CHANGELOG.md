@@ -7,6 +7,8 @@ Progress cards and the polling activity feed are removed from the client.
 
 ## Recent work
 
+- Added public-tunnel multiplayer recordings with measured round-trip times.
+
 - Added the Signal Frontier replacement pack and kept classic disc loading.
 - Added CI playthrough recordings and README screenshots.
 - Added a two-browser multiplayer recording with controlled latency and jitter.

@@ -1,29 +1,74 @@
 // Two real browser clients, one real server, ordered WebSocket delay injection.
 import assert from 'node:assert/strict';
+import dns from 'node:dns';
 import {spawn,spawnSync} from 'node:child_process';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync,appendFileSync} from 'node:fs';
 import {chromium} from 'playwright';
-const dir='artifacts/multiplayer';mkdirSync(dir,{recursive:true});
+const tunneled=process.argv.includes('--tunnel');
+const dir=tunneled?'artifacts/multiplayer-tunnel':'artifacts/multiplayer';mkdirSync(dir,{recursive:true});
 const server=spawn(process.execPath,['native-server.mjs'],{env:{...process.env,NATIVE_PORT:'0',SPECTRE_ASSETS:'open'},stdio:['ignore','pipe','inherit']});
-let browser,context;
+let browser,context,tunnel,edgeIP;
+const systemLookup=dns.lookup;
+const socketURLs=[];
 const timers=new Set(),errors=[],samples=[];
 let phase='Local baseline',delay=0,jitter=false,epoch=performance.now();
 try{
-  const origin=await new Promise((resolve,reject)=>{
+  const localOrigin=await new Promise((resolve,reject)=>{
     const timeout=setTimeout(()=>reject(Error('Server startup timed out')),10000);
     server.stdout.on('data',b=>{const url=b.toString().match(/http:\/\/localhost:\d+/);if(url){clearTimeout(timeout);resolve(url[0]);}});
     server.on('error',reject);server.on('exit',code=>reject(Error(`Server exited ${code}`)));
   });
-  browser=await chromium.launch(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{});
+  let origin=localOrigin;
+  if(tunneled){
+    writeFileSync(`${dir}/tunnel.log`,'');
+    tunnel=spawn('cloudflared',['tunnel','--protocol','http2','--url',localOrigin,'--no-autoupdate'],{stdio:['ignore','ignore','pipe']});
+    origin=await new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>reject(Error('Public tunnel startup timed out')),30000);
+      tunnel.stderr.on('data',b=>{appendFileSync(`${dir}/tunnel.log`,b);const text=b.toString();const url=text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);if(url){clearTimeout(timeout);resolve(url[0]);}});
+      tunnel.once('error',e=>{clearTimeout(timeout);reject(e);});
+      tunnel.once('exit',code=>{clearTimeout(timeout);reject(Error(`Tunnel exited ${code}`));});
+    });
+    console.log(`Tunnel announced: ${origin}`);
+    const host=new URL(origin).hostname;
+    try{await dns.promises.lookup(host);}catch{
+      // Some local resolvers cache NXDOMAIN for newly issued tunnel names.
+      // Resolve only this public hostname; never redirect traffic to localhost.
+      const resolver=new dns.promises.Resolver();resolver.setServers(['1.1.1.1']);
+      for(let attempt=0;attempt<30;attempt++){
+        try{[edgeIP]=await resolver.resolve4(host);break;}catch{await new Promise(resolve=>setTimeout(resolve,1000));}
+      }
+      assert.ok(edgeIP,'public DNS resolves the new tunnel hostname');
+      dns.lookup=(name,options,callback)=>{
+        if(name!==host)return systemLookup(name,options,callback);
+        if(typeof options==='function'){callback=options;options={};}
+        queueMicrotask(()=>options?.all?callback(null,[{address:edgeIP,family:4}]):callback(null,edgeIP,4));
+      };
+      console.log(`Public DNS fallback: ${host} -> ${edgeIP}`);
+    }
+    // The URL can be announced before the public route is ready.
+    let ready=false,lastError='';
+    for(let attempt=0;attempt<30;attempt++){
+      try{const response=await fetch(origin+'/pack.json',{signal:AbortSignal.timeout(5000)});if(response.ok&&(await response.json()).id==='open'){ready=true;break;}lastError=`HTTP ${response.status}`;}catch(e){lastError=e.message;}
+      await new Promise(resolve=>setTimeout(resolve,1000));
+    }
+    assert.ok(ready,`Public tunnel unavailable: ${lastError}; see ${dir}/tunnel.log`);
+    console.log(`Public game origin: ${origin}`);
+  }
+  browser=await chromium.launch({...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{}),args:edgeIP?[`--host-resolver-rules=MAP ${new URL(origin).hostname} ${edgeIP}`]:[]});
   context=await browser.newContext({viewport:{width:1600,height:760},recordVideo:{dir,size:{width:1600,height:760},fps:30}});
   // Instrument the served module only; production source and simulation are unchanged.
   await context.route('**/multiplayer.js',async route=>{
-    const response=await route.fetch();let body=await response.text();
+    try{
+    const response=await fetch(route.request().url());assert.ok(response.ok,'multiplayer module loads through requested origin');let body=await response.text();
     body=body.replace('constructor() {','constructor() { window.__mp=this;');
+    body=body.replace("if(msg.type==='welcome'){","if(msg.type==='pong'&&typeof msg.at==='number')(window.__rtts??=[]).push(performance.now()-msg.at); if(msg.type==='welcome'){");
     body+=`\nconst originalDraw=Multiplayer.prototype.draw;\nMultiplayer.prototype.draw=function(t){\n const d=window.__diag??={frames:0,held:0,maxGap:0,maxCorrection:0};\n if(this.ready){d.frames++;d.maxGap=Math.max(d.maxGap,t-(d.last??t));\n if(this.previous && t-this.received>(this.latest.tick-this.previous.tick)*1000/60)d.held++;\n d.maxCorrection=Math.max(d.maxCorrection,Math.hypot(this.correction?.x??0,this.correction?.z??0));}\n d.last=t;return originalDraw.call(this,t);\n};`;
-    await route.fulfill({response,body});
+    await route.fulfill({status:response.status,contentType:'text/javascript',body});
+    }catch(error){errors.push(error.message);await route.abort();}
   });
   await context.routeWebSocket('**/multiplayer/socket',ws=>{
+    socketURLs.push(ws.url());
+    assert.equal(new URL(ws.url()).host,new URL(origin).host,'WebSocket uses the requested origin');
     const upstream=ws.connectToServer();let upDue=0,downDue=0,count=0;
     const later=(message,to,down)=>{
       const now=performance.now();let latency=delay;
@@ -66,14 +111,14 @@ try{
       }
     },50);
   });
-  for(const profile of [{name:'Local baseline',delay:0,jitter:false},{name:'150 ms added round-trip delay',delay:75,jitter:false},{name:'150 ms RTT + jitter + 300 ms receive stalls',delay:75,jitter:true}]){
-    phase=profile.name;delay=profile.delay;jitter=profile.jitter;epoch=performance.now();
+  for(const profile of [{name:tunneled?'Public tunnel - no injected delay':'Local baseline',delay:0,jitter:false},{name:'150 ms added round-trip delay',delay:75,jitter:false},{name:'150 ms RTT + jitter + 300 ms receive stalls',delay:75,jitter:true}]){
+    phase=(tunneled&&profile.delay?'Public tunnel + ':'')+profile.name;delay=profile.delay;jitter=profile.jitter;epoch=performance.now();
     console.log(`Recording: ${phase}`);
-    for(const frame of frames)await frame.evaluate(()=>{window.__diag=undefined;window.__mp.camera=2;document.querySelector('#mp-camera').value='2';});
+    for(const frame of frames)await frame.evaluate(()=>{window.__diag=undefined;window.__rtts=[];window.__mp.camera=2;document.querySelector('#mp-camera').value='2';});
     for(let step=0;step<60;step++){
       await Promise.all(frames.map(f=>f.evaluate(step=>{window.__motionOnly=step<40;window.__turn=Math.floor(step/10)%2===1;},step)));
       const data=await Promise.all(frames.map(f=>f.evaluate(()=>{
-        const m=window.__mp;return {diag:window.__diag,tick:m.latest.tick,pending:m.pending.length,correction:Math.hypot(m.correction?.x??0,m.correction?.z??0),players:m.latest.players.map(p=>({x:p.x,z:p.z,health:p.health,kills:p.kills})),status:document.querySelector('#mp-status').textContent};
+        const m=window.__mp;return {diag:window.__diag,rtts:window.__rtts??[],tick:m.latest.tick,pending:m.pending.length,correction:Math.hypot(m.correction?.x??0,m.correction?.z??0),players:m.latest.players.map(p=>({x:p.x,z:p.z,health:p.health,kills:p.kills})),status:document.querySelector('#mp-status').textContent};
       })));
       samples.push({phase,elapsed:performance.now()-epoch,clients:data});
       await page.locator('#label').evaluate((el,{phase,step,data})=>{el.textContent=`${phase} | ${(step/4).toFixed(1)}s | Player 1 (left) / Player 2 (right)\nPending inputs ${data.map(d=>d.pending).join(' / ')} | correction ${data.map(d=>d.correction.toFixed(1)).join(' / ')} world units`;el.style.whiteSpace='pre';},{phase,step,data});
@@ -91,10 +136,11 @@ try{
   assert.equal(encoded.status,0,encoded.stderr?.toString());
   const summary=[...new Set(samples.map(s=>s.phase))].map(phase=>{
     const rows=samples.filter(s=>s.phase===phase);return {phase,clients:[0,1].map(i=>{
-      const d=rows.at(-1).clients[i].diag;return {frames:d.frames,remoteHoldPercent:100*d.held/d.frames,maxFrameGapMs:d.maxGap,maxCorrectionUnits:d.maxCorrection,maxPendingInputs:Math.max(...rows.map(r=>r.clients[i].pending)),kills:rows.at(-1).clients[i].players.map(p=>p.kills)};
+      const last=rows.at(-1).clients[i];const d=last.diag;const rtts=[...last.rtts].sort((a,b)=>a-b);return {rttSamples:rtts.length,rttMedianMs:rtts.length?rtts[Math.floor(rtts.length/2)]:null,rttMaxMs:rtts.length?rtts.at(-1):null,frames:d.frames,remoteHoldPercent:100*d.held/d.frames,maxFrameGapMs:d.maxGap,maxCorrectionUnits:d.maxCorrection,maxPendingInputs:Math.max(...rows.map(r=>r.clients[i].pending)),kills:rows.at(-1).clients[i].players.map(p=>p.kills)};
     })};
   });
-  writeFileSync(`${dir}/telemetry.json`,JSON.stringify({errors,summary,samples},null,2));
+  writeFileSync(`${dir}/telemetry.json`,JSON.stringify({origin,tunneled,edgeIP,socketURLs,errors,summary,samples},null,2));
+  assert.equal(socketURLs.length,2,'two WebSockets connected');
   console.log(JSON.stringify(summary,null,2));assert.deepEqual(errors,[],'browser errors');
   for(const phase of new Set(samples.map(s=>s.phase)))for(const i of [0,1]){
     const rows=samples.filter(s=>s.phase===phase);
@@ -104,5 +150,5 @@ try{
   console.log(`PASS: two real clients recorded at ${dir}/two-clients.mp4`);
 }finally{
   for(const timer of timers)clearTimeout(timer);
-  await context?.close();await browser?.close();server.kill();
+  await context?.close();await browser?.close();tunnel?.kill();server.kill();dns.lookup=systemLookup;
 }

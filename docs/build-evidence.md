@@ -36,3 +36,18 @@ These are controlled local conditions, not a measurement of an Internet connecti
 The output directory is `artifacts/multiplayer/`. It contains `two-clients.mp4`, screenshots, and `telemetry.json`.
 Telemetry includes queued inputs, correction distance, browser frame gaps, and frames that have no new opponent snapshot to interpolate toward.
 The recording is silent. A passing check confirms that both clients run without browser errors; it does not establish acceptable latency.
+
+To route both clients through a real public Cloudflare relay, install `cloudflared`, then run:
+
+```sh
+npm run test:multiplayer:record -- --tunnel
+```
+
+The test starts a temporary tunnel to its isolated server and closes both when it finishes.
+Both game pages and both WebSocket connections use the public HTTPS origin.
+The first phase adds no artificial delay. Later phases add the same delay and jitter profiles on top of the real connection.
+The telemetry includes the public origin, WebSocket URLs, and measured application ping round-trip times for each phase.
+Outputs go to `artifacts/multiplayer-tunnel/`, separate from the local test.
+Both browsers still run on the same computer. This exercises a public relay, not two geographically separated players.
+If the system resolver cannot resolve a new tunnel hostname, the test retries with Cloudflare public DNS.
+That fallback applies only to the test process and browser. It points to the public edge address and does not change system DNS settings.

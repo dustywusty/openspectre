@@ -8,16 +8,18 @@ jobs:
     outputs:
       recording: ${{ steps.recording.outputs.artifact-url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
       - run: npm ci
@@ -32,7 +34,7 @@ jobs:
       - name: Upload playthrough evidence
         id: recording
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playthrough-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/playthrough/
@@ -43,9 +45,11 @@ jobs:
         env:
           RECORDING_URL: ${{ steps.recording.outputs.artifact-url }}
         run: |
-          echo "### Gameplay evidence" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download MP4 recordings and screenshots]($RECORDING_URL) (30-day retention; GitHub sign-in required)." >> "$GITHUB_STEP_SUMMARY"
-          echo "Real WASM frames; silent, without browser HUD. Beacon navigation uses labeled infinite health. Partial clips can survive failed checks; consult the run result." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Gameplay evidence"
+            echo "[Download MP4 recordings and screenshots]($RECORDING_URL) (30-day retention; GitHub sign-in required)."
+            echo "Real WASM frames; silent, without browser HUD. Beacon navigation uses labeled infinite health. Partial clips can survive failed checks; consult the run result."
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: npm run test:open-network
   pr-recording:
     needs: no-disc
@@ -54,7 +58,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           RECORDING_URL: ${{ needs.no-disc.outputs.recording }}
           CHECK_RESULT: ${{ needs.no-disc.result }}

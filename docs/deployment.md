@@ -7,7 +7,7 @@ The image includes the open asset pack. Original disc files stay outside the ima
 
 ## Automatic releases
 
-After the deployment workflow reaches `main`, each successful `Standalone game` push build triggers a release.
+Each successful `Standalone game` push build on `main` triggers a release.
 The workflow builds an AMD64 image, checks HTTP and two multiplayer connections, then uploads the image over SSH.
 Only the current `main` commit can deploy. Pull requests test the container without deployment credentials.
 
@@ -19,14 +19,33 @@ Repository variables:
 | `OVH_USER` | `openspectre-deploy` |
 | `OVH_DEPLOY_ENABLED` | `true` |
 
-Repository secrets:
+Secrets in the `production` environment:
 
 - `OVH_DEPLOY_KEY`: Dedicated SSH private key
 - `OVH_KNOWN_HOSTS`: Trusted SSH host keys
 
+The environment permits only the `main` branch. No deployment secrets belong at repository scope.
+Both workflows pin external Actions to full commit hashes. Check upstream changes before updating these hashes.
+The deployment job downloads the tested image without checking out repository code.
+
 The deployment key can only run the image receiver. It cannot open an interactive shell.
 The receiver accepts a full commit SHA and keeps the previous image for rollback.
 If the new container fails its health check, the receiver restores the previous image.
+
+## Secret rotation
+
+Create a new dedicated SSH key. Add its public key to the host with the restricted command prefix.
+Set the private key in the production environment:
+
+```sh
+gh secret set OVH_DEPLOY_KEY --env production < /secure/path/deploy-key
+gh secret set OVH_KNOWN_HOSTS --env production < /secure/path/known-hosts
+```
+
+Use a trusted host-key record. Do not trust an unchecked network scan.
+Run a deployment from `main`, then check the live site.
+After deployment succeeds, remove the previous authorized key and the temporary private-key file.
+GitHub cannot return stored secret values. Generate a new key instead of exporting secrets through workflow logs.
 
 ## Host configuration
 

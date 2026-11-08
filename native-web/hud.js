@@ -7,7 +7,7 @@ const clock = ticks => { const seconds = Math.max(0, Math.floor(number(ticks) / 
 export function singleHudState(state, {playing = true} = {}) {
   const mission = state.mission ?? {}, encounter = state.encounter ?? {}, flags = state.flags ?? {};
   const maxHealth = Math.max(1, Math.min(number(state.vehicle_settings?.[1]) || 6, 9));
-  let status = playing ? '' : 'Paused · Drive tank to continue';
+  let status = playing ? '' : 'Paused';
   let tone = 'normal';
   if (state.death_transition) {status = flags.enabled && mission.lives > 1 ? 'Tank destroyed · respawning' : 'Tank destroyed'; tone = 'danger';}
   if (state.completion || encounter.status === 'won') {status = 'Arena cleared'; tone = 'success';}

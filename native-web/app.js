@@ -44,10 +44,10 @@ const keys = new Set();
 const touchKeys = new Map();
 let driving = false, gameReady = false;
 function pauseDrive(stopAudio=true) {
-  driveHud.setStatus('Paused · Drive tank to continue');
+  driveHud.setStatus('Paused');
   driving = false; keys.clear(); touchKeys.clear(); if(stopAudio)sound.stop();
-  $('#play').textContent = 'Drive tank';
-  $('#drive-state').textContent = gameReady ? 'Paused · click Drive tank to continue' : 'Arena unavailable';
+  $('#play').textContent = 'Play';
+  $('#drive-state').textContent = gameReady ? 'Paused' : 'Arena unavailable';
 }
 let shownResults = '';
 function updateResults(state) {
@@ -85,7 +85,8 @@ function gameDraw(dt = 0) {
   const hasOptional=optional?.available.some(value=>value&1);
   const playableOptional=[1,5,9,10].includes(optional?.selected);
   $('#fire-optional').disabled=!playableOptional;
-  const weaponLabel=hasOptional ? `Selected: ${weaponNames[optional.selected] ?? 'Cannon'} · Q to cycle · ${playableOptional ? `E fires ${weaponNames[optional.selected]}` : 'This optional weapon is not playable yet'}` : 'No optional weapons unlocked';
+  const weaponLabel=hasOptional ? `${weaponNames[optional.selected] ?? 'Cannon'}${playableOptional ? '' : ' · unavailable'}` : '';
+  $('#optional-weapon').hidden=!hasOptional;
   if($('#optional-weapon').textContent!==weaponLabel)$('#optional-weapon').textContent=weaponLabel;
   const tank = state.tank;
   const encounter = state.encounter;
@@ -123,7 +124,7 @@ function startArena() {
   $('#scene-info').textContent = campaignMode ? `${scene.scenario} · ${scene.targets.length} targets · Fresh round` : `${scene.resolved} model placements · ${scene.targets.length} targets · ${activePack?.id==='open'?'Signal Frontier':scene.scenario}`;
   wasm.game_encounter(Number($('#mode').value));
   gameReady = true; $('#play').disabled = false; $('#restart').disabled = false;
-  $('#drive-state').textContent = 'Ready · click Drive tank to start';
+  $('#drive-state').textContent = 'Ready';
   gameDraw();
 }
 $('#arena').onchange = startArena;
@@ -136,7 +137,7 @@ $('#play').onclick = () => {
   void sound.unlock();
   driving = true; last = performance.now();
   $('#play').textContent = 'Pause';
-  $('#drive-state').textContent = 'Driving · 60 Hz Rust simulation';
+  $('#drive-state').textContent = 'Playing';
   driveCanvas.focus({ preventScroll: true });
 };
 $('#play').onpointerdown = e => e.preventDefault();
@@ -148,7 +149,7 @@ $('#type31-event').onclick = () => {
     $('#drive-state').textContent = 'Unlock event queued · animation advances while driving';
   }
 };
-function restartRound() { if(gameReady) { pauseDrive(); wasm.game_reset(); gameDraw(); $('#drive-state').textContent='Ready · click Drive tank to start'; } }
+function restartRound() { if(gameReady) { pauseDrive(); wasm.game_reset(); gameDraw(); $('#drive-state').textContent='Ready'; } }
 $('#restart').onclick = restartRound;
 $('#next-level').onclick = () => {
   if(!gameReady)return;
@@ -339,7 +340,7 @@ $('#multiplayer-toggle').onclick=()=>void selectPlayMode(true);
 if(new URL(location.href).searchParams.has('room')||new URL(location.href).searchParams.get('play')==='multiplayer')void selectPlayMode(true);
 function tick(time) {
   if (driving && !document.hidden) gameDraw(Math.max(0, (time - last) / 1000));
-  if (!driving && !multiplayerActive && spinning && !document.hidden) { yaw += Math.min((time - last) / 1000, .1) * .4; draw(); }
+  if ($('#workbench').open && !driving && !multiplayerActive && spinning && !document.hidden) { yaw += Math.min((time - last) / 1000, .1) * .4; draw(); }
   last = time; requestAnimationFrame(tick);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseDrive(); else { requestAnimationFrame(draw); gameDraw(); } });
@@ -348,17 +349,12 @@ try {
   const packResponse = await fetch('/pack.json');
   if(!packResponse.ok)throw new Error('Asset pack information unavailable. Restart the server.');
   activePack=await packResponse.json();
-  $('#pack-status').textContent=`${activePack.name} · ${activePack.description}`;
+  $('#pack-status').textContent=activePack.name;
   $('#campaign').replaceChildren(...activePack.campaigns.map(c=>new Option(c.name,c.id)));
-  $('#model-count').textContent=activePack.modelCount;
-  $('#model-count-label').textContent=activePack.id==='open'?'Models per zone':'Classic model entries';
-  $('#arena-count').textContent=activePack.arenaCount;
-  $('#sound-count').textContent=activePack.soundIds.length;
   if(activePack.id==='open'){
     $('#camera').value='0';
     $('#camera').options[1].textContent='Chase';
   }
-  else document.querySelector('.intro p').textContent='Classic disc mode · original resources running in the native Rust engine.';
   const response = await fetch('/spectre_core.wasm');
   if (!response.ok) throw new Error('WASM module missing. Run npm run build:wasm.');
   const { instance } = await WebAssembly.instantiateStreaming(response, {});
@@ -375,41 +371,7 @@ try {
   await loadCampaign();
   requestAnimationFrame(draw);
   requestAnimationFrame(tick);
-} catch (e) { $('#name').textContent = 'Unable to start the Rust viewer'; status.textContent = e.message; }
-
-let progressRevision;
-function node(tag, content, className) {
-  const element = document.createElement(tag);
-  element.textContent = content;
-  if (className) element.className = className;
-  return element;
-}
-async function refreshProgress() {
-  try {
-    const response = await fetch('/progress.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Progress log unavailable');
-    const data = await response.json();
-    const revision = JSON.stringify(data);
-    if (revision !== progressRevision) {
-      $('#milestones').replaceChildren(...data.milestones.map((item, i) => {
-        const card = document.createElement('article'); card.className = 'milestone'; card.dataset.state = item.state;
-        card.append(node('div', `0${i + 1} / ${item.state.toUpperCase()}`, 'state'), node('h3', item.title), node('p', item.detail));
-        return card;
-      }));
-      $('#activity').replaceChildren(...data.activity.map(item => {
-        const entry = document.createElement('article'); entry.className = 'entry';
-        const date = node('time', item.date); date.dateTime = item.date;
-        entry.append(date, node('h3', item.title), node('p', item.detail)); return entry;
-      }));
-      progressRevision = revision;
-    }
-    $('#sync').textContent = 'Log connected · checks every 10s';
-  } catch {
-    $('#sync').textContent = 'Progress log disconnected · retrying in 10s';
-  }
-}
-refreshProgress();
-setInterval(refreshProgress, 10000);
+} catch (e) { $('#drive-state').textContent = e.message; $('#name').textContent = 'Unable to load assets'; status.textContent = e.message; }
 
 $('#camera').onchange = () => setCamera(Number($('#camera').value));
 

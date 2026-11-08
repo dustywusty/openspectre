@@ -41,7 +41,7 @@ try{
   await page.waitForFunction(()=>[...document.querySelectorAll('iframe')].every(f=>f.contentWindow.__mp?.w));
   const frames=[page.frame({name:'a'}),page.frame({name:'b'})];
   for(const frame of frames){
-    await frame.addStyleTag({content:'body{margin:0!important;padding:0!important} #multiplayer-panel{position:fixed!important;inset:0!important;margin:0!important;padding:8px!important;border:0!important;background:#071018;overflow:hidden} #mp-view{width:768px!important;height:576px!important;max-height:none!important}'});
+    await frame.addStyleTag({content:'body{margin:0!important;padding:0!important} #multiplayer-panel{position:fixed!important;inset:0!important;margin:0!important;padding:8px!important;border:0!important;background:#071018;overflow:hidden} #multiplayer-panel>.game-viewport{max-width:768px!important;width:768px!important} #mp-view{width:768px!important;height:576px!important;max-height:none!important}'});
   }
   await frames[0].locator('#mp-create').click();
   await frames[0].waitForFunction(()=>window.__mp.room);

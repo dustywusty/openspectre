@@ -3,7 +3,7 @@
 A native Rust reconstruction of **Spectre VR**, the classic Macintosh tank game, playable in your browser through WebAssembly.
 Still in development, with single-player combat and two-player multiplayer.
 
-The bundled **Signal Frontier** pack includes 12 new arenas, models, and sounds. No original disc is needed.
+The bundled **Signal Frontier** pack includes 16 new arenas, models, and sounds. No original disc is needed.
 You can also [load assets from your own classic disc](docs/asset-packs.md).
 
 ![Chase view: cyan player tank facing enemy tanks and arena cover](docs/images/chase.png)

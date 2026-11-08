@@ -32,6 +32,16 @@
         "Overpass",
         "Last Light"
       ]
+    },
+    {
+      "id": "midnight",
+      "name": "Midnight Circuit",
+      "arenas": [
+        "Violet Grid",
+        "Neon Arcade",
+        "Ghost Network",
+        "After Hours"
+      ]
     }
   ],
   "models_per_campaign": 53,
@@ -87,6 +97,7 @@
     "audio/10048.wav": "1a611112cc67a0058b9b629ac0228a127409c2742a420f51c7aba936dae50f5f",
     "central.bin": "d3369908e8f88d3d962936a20aee8b7c3ef52a6625d93d5f2252753d4aa72249",
     "eastern.bin": "26afbee66f96f9aaa7f11e2188bac05e9376d93dcfe542a0f46979797521a1aa",
+    "midnight.bin": "83ec3632912d3fb37f6a708e5ad8dd449752037f4c68cb5bad145d711cf03587",
     "south.bin": "60f8bc7e92906b7025ba3e415d5636134bc8fc4c4860528ee5d99609f51b8a41",
     "spectre.bin": "2115103381f3e1dca54738d0139e7c89520f1c0bc9fd60a499c9a6ebff98d2bf"
   }

@@ -14,11 +14,12 @@ Classic mode does not fall back to bundled assets when a file is missing.
 
 ## Signal Frontier
 
-The replacement pack contains three zones with four arenas each:
+The replacement pack contains four zones with four arenas each:
 
 - **Neon Foundry:** Crosscurrent, Switchyard, Prism Court, Citadel.
 - **Glass Expanse:** Mirror Lake, Long Division, Frozen Compass, Refraction.
 - **Ember Circuit:** Hot Junction, Furnace Row, Overpass, Last Light.
+- **Midnight Circuit:** Violet Grid, Neon Arcade, Ghost Network, After Hours.
 
 Each zone has 53 model entries. These include tank variants, cover, supplies, hazards, transit markers, projectiles, and Aegis animation stages.
 The pack includes new palettes, radar symbols, enemy parameters, weapon costs, score thresholds, and campaign sequences.

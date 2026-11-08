@@ -19,7 +19,7 @@ const routes = new Map([
   ['/app.js', ['native-web/app.js', 'text/javascript']],
   ['/spectre_core.wasm', ['native-web/spectre_core.wasm', 'application/wasm']],
   ['/data/spectre.bin', [pack.data('spectre'), 'application/octet-stream']],
-  ...['central', 'eastern', 'south'].map(name => [`/data/${name}.bin`, [pack.data(name), 'application/octet-stream']]),
+  ...pack.public.campaigns.map(({id}) => [`/data/${id}.bin`, [pack.data(id), 'application/octet-stream']]),
 ]);
 const port = Number(process.env.NATIVE_PORT || 5174);
 const server = http.createServer(async (req, res) => {

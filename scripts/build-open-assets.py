@@ -223,7 +223,7 @@ def build(spec, out):
               'campaigns':[{'id':z['key'],'name':z['name'],'arenas':[a['name'] for a in z['arenas']]} for z in spec['zones']],
               'models_per_campaign':len(spec['models'])+6,'sound_count':len(spec['sound_ids']),'files':files}
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
-    print(f"Built {manifest['name']}: 12 arenas, {manifest['models_per_campaign']} models per campaign, {len(spec['sound_ids'])} sounds")
+    print(f"Built {manifest['name']}: {sum(len(z['arenas']) for z in spec['zones'])} arenas, {manifest['models_per_campaign']} models per campaign, {len(spec['sound_ids'])} sounds")
 
 
 if __name__=='__main__':

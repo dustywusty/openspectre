@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/hud.css">
 <main>
-  <header id="drive"><a class="wordmark" href="/">OPENSPECTRE</a><span id="pack-status" role="status">Loading…</span></header>
+  <header id="drive"><a class="wordmark" href="/">OPENSPECTRE</a><div class="header-links"><span id="pack-status" role="status">Loading…</span><a href="https://github.com/dustywusty/openspectre" target="_blank" rel="noopener noreferrer" aria-label="OpenSpectre on GitHub (opens in a new tab)">GitHub ↗</a></div></header>
   <div class="toolbar" role="group" aria-label="Play mode"><button id="single-player-toggle" aria-pressed="true">Single player</button><button id="multiplayer-toggle" aria-pressed="false">Multiplayer</button></div>
   <section class="drive-panel" id="multiplayer-panel" hidden>
     <div class="toolbar"><button id="mp-create" disabled>Create room</button><label for="mp-room">Room code</label><input id="mp-room" maxlength="12" placeholder="Friend’s room code" autocomplete="off"><button id="mp-join" disabled>Join room</button><button id="mp-leave" disabled>Leave room</button><label for="mp-camera">View</label><select id="mp-camera"><option value="0">First person</option><option value="1" selected>Chase</option><option value="2">Overhead</option></select><button id="mp-fullscreen">Fullscreen</button><button id="mp-mute" aria-pressed="false">Mute</button></div>

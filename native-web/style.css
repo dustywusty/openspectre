@@ -14,3 +14,5 @@ details{border-top:1px solid var(--line);padding:10px 0;margin-top:10px}summary{
 #campaign-controls:not([hidden]){display:inline-flex;align-items:center;gap:8px}#campaign-level{width:80px}[hidden]{display:none!important}[aria-label="Play mode"] button[aria-pressed="true"]{background:#294330;border-color:var(--mint)}#mp-link{flex:1;min-width:180px}#mp-room{width:150px}#mp-status{color:var(--mint)}
 @media(pointer:fine){.drive-controls{display:none}}
 @media(max-width:600px){body{padding:0 8px}header{height:48px}.wordmark{font-size:15px}#pack-status{font-size:10px}.drive-panel{padding:8px}.drive-panel>.game-viewport{max-width:100%}.layout,.rating-grid{grid-template-columns:1fr}#assets{min-height:120px;height:120px;flex:auto}.gallery{grid-template-columns:repeat(2,1fr)}.toolbar{gap:6px}select{max-width:100%}}
+
+.header-links{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px 16px;text-align:right;font-size:12px}.header-links a{white-space:nowrap}

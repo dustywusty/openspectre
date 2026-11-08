@@ -300,12 +300,12 @@ impl Ui {
                     "Collect every beacon to win. You have three lives. Keep moving.",
                 );
                 for (zone_index, zone) in pack.zones.iter().enumerate() {
-                    let y = 196. + zone_index as f32 * 112.;
+                    let y = 196. + zone_index as f32 * 116.;
                     self.text(&zone.name.to_uppercase(), 64., y, 16., ACCENT);
                     for (arena_index, arena) in zone.arenas.iter().enumerate() {
                         let index = zone_index * ARENAS_PER_ZONE + arena_index;
                         let x = 64. + arena_index as f32 * 292.;
-                        let r = Rect::new(x, y + 14., 276., 88.);
+                        let r = Rect::new(x, y + 14., 276., 80.);
                         self.button(r, "", Action::Select(index), false);
                         if session.selected == index {
                             self.border(Rect::new(r.x + 3., r.y + 3., r.w - 6., r.h - 6.), ACCENT);

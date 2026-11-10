@@ -120,6 +120,8 @@ The desktop drive command uses the same encounter simulation. Desktop sound outp
 The single-player **Infinite health** checkbox prevents hull loss from enemy fire and acid. It is off on each page load.
 Hits still register. Turning it off restores normal damage.
 
+**Enemy respawn** is on by default in the browser and desktop clients. Destroyed mission enemies return indefinitely and never retire, so the last-enemy bonus is not awarded. Turning it off restores the original per-arena rebirth limits, which can retire enemies. The browser saves the choice in local storage. The desktop client saves it in `profile.json`. WASM hosts call `game_enemy_respawn(0|1)`.
+
 ## Multiplayer
 
 Select **Multiplayer**, create a room, and share the invitation link. The second player joins automatically.

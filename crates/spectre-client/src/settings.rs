@@ -14,6 +14,7 @@ pub struct Settings {
     pub camera: u32,
     pub smooth_pixels: bool,
     pub control_hints: bool,
+    pub enemy_respawn: bool,
 }
 
 impl Default for Settings {
@@ -25,6 +26,7 @@ impl Default for Settings {
             camera: 1,
             smooth_pixels: false,
             control_hints: true,
+            enemy_respawn: true,
         }
     }
 }
@@ -138,6 +140,10 @@ mod tests {
         assert_eq!(read.settings.camera, 2);
         assert_eq!(read.last_arena, crate::assets::ARENA_COUNT - 1);
         assert!(read.settings.control_hints);
+        assert!(
+            read.settings.enemy_respawn,
+            "older profiles default to respawning enemies"
+        );
         fs::write(&path, b"broken").unwrap();
         assert!(Profile::load(&path).is_err());
         fs::remove_dir_all(dir).unwrap();

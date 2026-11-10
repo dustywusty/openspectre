@@ -33,6 +33,7 @@ pub enum Action {
     Camera,
     Pixels,
     Hints,
+    EnemyRespawn,
 }
 
 pub struct Ui {
@@ -470,11 +471,20 @@ impl Ui {
                         if settings.control_hints { "On" } else { "Off" },
                         Action::Hints,
                     ),
+                    (
+                        "Enemy respawn",
+                        if settings.enemy_respawn {
+                            "Endless"
+                        } else {
+                            "Original limits"
+                        },
+                        Action::EnemyRespawn,
+                    ),
                 ]
                 .iter()
                 .enumerate()
                 {
-                    let y = 286. + i as f32 * 65.;
+                    let y = 286. + i as f32 * 62.;
                     self.text(label, 84., y + 33., 24., INK);
                     self.button(Rect::new(840., y, 356., 52.), value, *action, false);
                     self.line(vec2(84., y + 57.), vec2(790., y + 57.), LINE);

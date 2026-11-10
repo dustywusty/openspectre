@@ -283,6 +283,9 @@ pub struct Game {
     pub encounter: Encounter,
     pub death_transition: Option<DeathTransition>,
     pub infinite_health: bool,
+    /// Destroyed enemies return indefinitely. When off, the original
+    /// per-arena rebirth lives apply and enemies retire once they run out.
+    pub enemy_respawn: bool,
     pub enemy_shots: Vec<Shot>,
     pub fired: u64,
     pub radar_flash: u8,
@@ -487,6 +490,7 @@ impl Game {
             encounter: Encounter::default(),
             death_transition: None,
             infinite_health: false,
+            enemy_respawn: true,
             enemy_shots: Vec::new(),
             fired: 0,
             combat_counters: crate::recovered::CombatCounters::default(),
@@ -1115,8 +1119,10 @@ impl Game {
             );
             self.spawn_random = seed;
             self.flag_spawn_cursor = cursor;
-            let retire =
-                recovered::consume_enemy_life(index + 1, &flags, &mut lives, 0).unwrap_or(true);
+            // Endless respawn leaves plan lives untouched, so turning it off
+            // mid-arena resumes the original rebirth limits.
+            let retire = !self.enemy_respawn
+                && recovered::consume_enemy_life(index + 1, &flags, &mut lives, 0).unwrap_or(true);
             for (i, target) in self.targets.iter_mut().enumerate() {
                 target.lives = lives[i + 1];
             }
@@ -3154,6 +3160,46 @@ mod tests {
     }
 
     #[test]
+    fn enemy_respawn_option_is_on_by_default_and_never_retires_enemies() {
+        let mut g = empty();
+        assert!(g.enemy_respawn, "enemy respawn defaults on");
+        let world = World {
+            obstacles: vec![Obstacle {
+                kind: 7,
+                h: 0,
+                v: 0,
+                facing: 0,
+            }],
+        };
+        let item = crate::scene::Catalog::default()
+            .instantiate(&world)
+            .remove(0);
+        g.add_target(item, 2).unwrap();
+        g.targets[0].lives = 1;
+        g.capture_targets();
+        g.flags.enabled = true;
+        g.enemy_clear_bonus = Some(200);
+        for death in 1..=5 {
+            g.targets[0].health = 0;
+            g.targets[0].deaths = death;
+            g.respawn_enemies();
+            assert!(!g.targets[0].retired, "death {death} must not retire");
+            assert_eq!((g.targets[0].health, g.targets[0].lives), (2, 1));
+        }
+        assert_eq!(
+            g.mission.score, 0,
+            "endless enemies never award the clear bonus"
+        );
+        g.enemy_respawn = false;
+        g.targets[0].health = 0;
+        g.respawn_enemies();
+        assert!(
+            g.targets[0].retired,
+            "turning it off restores rebirth limits"
+        );
+    }
+
+    #[test]
     fn mission_enemy_lives_transfer_respawn_retire_and_reset() {
         let mut g = empty();
         let world = World {
@@ -3174,6 +3220,7 @@ mod tests {
         }
         g.capture_targets();
         g.flags.enabled = true;
+        g.enemy_respawn = false;
         g.enemy_clear_bonus = Some(200);
         let original = [g.targets[0].item.x, g.targets[0].item.z];
         g.targets[0].health = 0;

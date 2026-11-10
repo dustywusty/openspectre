@@ -82,6 +82,8 @@ new Uint8Array(w.memory.buffer,fixturePtr,fixture.length).set(fixture);
 assert.equal(w.load_archive(),1);
 const fixtureIndex=output().findIndex(e=>e.kind==='wrld'&&e.id===10000);
 assert.equal(w.game_start_mission(fixtureIndex),1);
+// The enemy-clear checks below need the original finite rebirth limits.
+w.game_enemy_respawn(0);
 assert.equal(output().targets.length,1,'open-field fixture has one shooter');
 w.game_frame(0,0,0,0,0);previous=output();
 let fixtureRespawns=0;

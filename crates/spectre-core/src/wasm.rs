@@ -205,10 +205,19 @@ pub extern "C" fn game_frame_weapons(
         );
         s.viewer.draw_game();
         if let Some(game) = &s.viewer.game {
-            s.output = serde_json::to_vec(&serde_json::json!({"campaign":s.viewer.campaign,"vehicle_settings":game.vehicle_settings,"mission":game.mission,"flags":game.flags,"tank":game.tank,"shots":game.shots,"impacts":game.impacts,"fired":game.fired,"combat_counters":game.combat_counters,"par_seconds":game.par_seconds,"dump_weights":game.dump_weights,"optional_weapons":game.optional_weapons,"pickups":game.pickups,"pickups_collected":game.pickups_collected,"flight_energy":game.flight_energy,"vertical":game.vertical,"pending_shields":game.pending_shields,"completion":game.completion,"ammo":game.ammo,"targets":game.targets,"destroyed":game.destroyed,"enemy_clear_award":game.enemy_clear_award,"collision_mode":game.collision_mode,"audio_events":game.audio_events,"encounter":game.encounter,"death_transition":game.death_transition,"radar_glyph_count":game.radar_glyphs.as_ref().map_or(0, Vec::len),"palette":game.palette,"ground_color_index":game.ground_color_index,"enemy_shots":game.enemy_shots})).unwrap();
+            s.output = serde_json::to_vec(&serde_json::json!({"campaign":s.viewer.campaign,"vehicle_settings":game.vehicle_settings,"mission":game.mission,"flags":game.flags,"tank":game.tank,"shots":game.shots,"impacts":game.impacts,"fired":game.fired,"combat_counters":game.combat_counters,"par_seconds":game.par_seconds,"dump_weights":game.dump_weights,"optional_weapons":game.optional_weapons,"pickups":game.pickups,"pickups_collected":game.pickups_collected,"flight_energy":game.flight_energy,"vertical":game.vertical,"pending_shields":game.pending_shields,"completion":game.completion,"ammo":game.ammo,"targets":game.targets,"destroyed":game.destroyed,"enemy_respawn":game.enemy_respawn,"enemy_clear_award":game.enemy_clear_award,"collision_mode":game.collision_mode,"audio_events":game.audio_events,"encounter":game.encounter,"death_transition":game.death_transition,"radar_glyph_count":game.radar_glyphs.as_ref().map_or(0, Vec::len),"palette":game.palette,"ground_color_index":game.ground_color_index,"enemy_shots":game.enemy_shots})).unwrap();
         }
         s.viewer.frame.rgba.as_ptr()
     })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn game_enemy_respawn(enabled: u32) {
+    STATE.with_borrow_mut(|s| {
+        if let Some(game) = &mut s.viewer.game {
+            game.enemy_respawn = enabled != 0;
+        }
+    });
 }
 
 #[unsafe(no_mangle)]

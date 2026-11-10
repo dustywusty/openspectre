@@ -73,6 +73,7 @@ function gameDraw(dt = 0) {
   const down = code => keys.has(code) || [...touchKeys.values()].includes(code);
   const axis = (a,b,c,d) => Number(down(a)||down(b))-Number(down(c)||down(d));
   wasm.game_infinite_health(Number($('#infinite-health').checked));
+  wasm.game_enemy_respawn(Number($('#enemy-respawn').checked));
   wasm.game_camera(Number($('#camera').value));
   const ptr = wasm.game_frame_weapons(dt, axis('KeyW','ArrowUp','KeyS','ArrowDown'), axis('KeyD','ArrowRight','KeyA','ArrowLeft'), Number(down('ShiftLeft')||down('ShiftRight')), Number(down('Space')), Number(down('KeyQ')), Number(down('KeyE')));
   driveContext.putImageData(new ImageData(new Uint8ClampedArray(wasm.memory.buffer,ptr,800*600*4),800,600),0,0);
@@ -378,3 +379,6 @@ $('#camera').onchange = () => setCamera(Number($('#camera').value));
 // Debug aid is opt-in for each page load; never persisted with browser form state.
 $('#infinite-health').checked=false;
 $('#infinite-health').onchange=()=>gameDraw();
+// Gameplay preference, on by default and remembered across visits.
+$('#enemy-respawn').checked=localStorage.getItem('spectre.enemyRespawn')!=='0';
+$('#enemy-respawn').onchange=()=>{localStorage.setItem('spectre.enemyRespawn',$('#enemy-respawn').checked?'1':'0');gameDraw();};

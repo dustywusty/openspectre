@@ -113,6 +113,11 @@ fn act(action: Action, session: &mut Session) -> Result<bool, String> {
             session.profile.settings.control_hints = !session.profile.settings.control_hints;
             session.profile_dirty = true;
         }
+        Action::EnemyRespawn => {
+            session.profile.settings.enemy_respawn = !session.profile.settings.enemy_respawn;
+            session.apply_game_settings();
+            session.profile_dirty = true;
+        }
     }
     Ok(false)
 }

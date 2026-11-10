@@ -121,6 +121,44 @@ for(let t=0;t<6000;t++)w.dm_step();w.dm_snapshot();
 assert.equal(output().winner,0,'replacement arena supports a complete deathmatch');
 console.log('PASS: live enemy combat, death, beacon collection, scoring, and a five-kill multiplayer match.');
 
+// Enemy respawn option: hunt every enemy with real drive/aim/fire inputs, then
+// check that eliminated enemies return when enabled and stay dead when disabled.
+{
+  const hunt=(game,budget,done)=>{
+    for(let t=0;t<budget;t++){
+      const s=game.output();if(done(s))return;
+      const live=s.targets.filter(e=>e.health>0&&!e.retired);
+      if(!live.length){game.w.game_frame(1/60,0,0,0,0);continue;}
+      const near=live.map(e=>[e.item.x-s.tank.x,e.item.z-s.tank.z]).sort((a,b)=>Math.hypot(...a)-Math.hypot(...b))[0];
+      const aim=Math.atan2(near[0],near[1]);
+      const delta=Math.atan2(Math.sin(aim-s.tank.heading),Math.cos(aim-s.tank.heading));
+      game.w.game_frame(1/60,Math.abs(delta)<.2&&Math.hypot(...near)>150?1:0,Math.abs(delta)>.03?Math.sign(delta):0,0,Number(Math.abs(delta)<.12));
+    }
+  };
+  const start=async respawn=>{
+    const game=await make('central');
+    assert.equal(game.w.game_start_mission(game.entries.findIndex(e=>e.kind==='wrld'&&e.id===10000)),1);
+    game.w.game_frame(0,0,0,0,0);
+    assert.equal(game.output().enemy_respawn,true,'enemy respawn defaults on');
+    game.w.game_enemy_respawn(Number(respawn));game.w.game_infinite_health(1);game.w.game_frame(0,0,0,0,0);
+    assert.equal(game.output().enemy_respawn,respawn);
+    return game;
+  };
+  const on=await start(true);const enemies=on.output().targets.length;
+  hunt(on,60*300,s=>s.targets.every(e=>e.deaths>0)&&s.destroyed>enemies);
+  let s=on.output();
+  assert.ok(s.targets.every(e=>e.deaths>0),'every enemy was eliminated');
+  assert.ok(s.targets.some(e=>e.deaths>=2),'a respawned enemy was eliminated again');
+  assert.ok(s.targets.every(e=>e.health>0&&!e.retired),'eliminated enemies respawned');
+  const off=await start(false);
+  hunt(off,60*300,s=>s.targets.every(e=>e.retired));
+  for(let t=0;t<600;t++)off.w.game_frame(1/60,0,0,0,1);
+  s=off.output();
+  assert.ok(s.targets.every(e=>e.retired&&e.health===0),'with respawn off, eliminated enemies stay dead');
+  assert.equal(s.destroyed,enemies);
+  console.log(`PASS: enemy respawn on (${on.output().destroyed} kills of ${enemies} enemies, all back) and off (all retired).`);
+}
+
 // Run the real HTTP/WSS server from a directory that has no .local or disc files.
 const clean=mkdtempSync(join(tmpdir(),'openspectre-no-disc-'));
 let server,peer;
